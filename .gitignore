@@ -1,0 +1,9 @@
+# Visual Studio 2015 user specific files
+.vs/
+
+# log files
+*.log
+
+# Visual Studio Code projects
+.vscode
+*.code-workspace
