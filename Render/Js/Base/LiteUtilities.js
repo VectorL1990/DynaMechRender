@@ -114,5 +114,78 @@ global.regexMap = function regexMap(regex, text, callback) {
   }
 }
 
+
+
+var LEvent = global.LEvent = GL.LEvent = {
+
+	/**
+	 * Binds event to instance
+	 */
+	bind: function(instance, event_type, callback, target_instance){
+		if (!instance){
+			throw("cannot bind event to null");
+		}
+		if (!callback){
+			throw("cannot bind to null callback");
+		}
+		if (instance.constructor == String){
+			throw("cannot bind event to a string");
+		}
+
+		var events = instance.levents;
+		if (!events)
+		{
+			Object.defineProperty(instance, "levents", {
+				value: {}, 
+				enumerable: false});
+			events = instance.levents;
+		}
+
+		if (events.hasOwnProperty(event_type)){
+			events[event_type].push([callback, target_instance]);
+		}
+		else{
+			events[event_type] = [[callback, target_instance]];
+		}
+
+		if (instance.onLEventBinded){
+			instance.onLEventBinded(event_type, callback, target_instance);
+		}
+	},
+
+	unbind: function( instance, event_type, callback, target_instance )
+	{
+		if(!instance) 
+			throw("cannot unbind event to null");
+		if(!callback) 
+			throw("cannot unbind from null callback");
+		if(instance.constructor === String ) 
+			throw("cannot bind event to a string");
+
+		var events = instance.__levents;
+		if(!events)
+			return;
+
+		if(!events.hasOwnProperty( event_type ))
+			return;
+
+		for(var i = 0, l = events[event_type].length; i < l; ++i)
+		{
+			var v = events[event_type][i];
+			if(v[0] === callback && v[1] === target_instance)
+			{
+				events[event_type].splice( i, 1 );
+				break;
+			}
+		}
+
+		if (events[event_type].length == 0)
+			delete events[event_type];
+
+		if( instance.onLEventUnbinded )
+			instance.onLEventUnbinded( event_type, callback, target_instance );
+	},
+}
+
 }
 )
