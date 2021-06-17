@@ -458,7 +458,7 @@ var LEvent = global.LEvent = GL.LEvent = {
 			return LEvent.bind(this, eventType, callback, instance);
 		};
 	},
-}
+};
 
 }
 )
