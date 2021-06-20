@@ -120,15 +120,21 @@ var LEvent = global.LEvent = GL.LEvent = {
 
 	/**
 	 * Binds event to instance
+	 * instance is the object which includes the bindings, it's not the object which really calls that function
+	 * callback is the function being called
+	 * target_instance is the very object which really calls function
 	 */
 	bind: function(instance, event_type, callback, target_instance){
-		if (!instance){
+		if (!instance)
+		{
 			throw("cannot bind event to null");
 		}
-		if (!callback){
+		if (!callback)
+		{
 			throw("cannot bind to null callback");
 		}
-		if (instance.constructor == String){
+		if (instance.constructor == String)
+		{
 			throw("cannot bind event to a string");
 		}
 
@@ -141,10 +147,13 @@ var LEvent = global.LEvent = GL.LEvent = {
 			events = instance.levents;
 		}
 
-		if (events.hasOwnProperty(event_type)){
+		if (events.hasOwnProperty(event_type))
+		{
+			// callback and target_instance are arranged as list to be pushed
 			events[event_type].push([callback, target_instance]);
 		}
-		else{
+		else
+		{
 			events[event_type] = [[callback, target_instance]];
 		}
 
@@ -162,7 +171,7 @@ var LEvent = global.LEvent = GL.LEvent = {
 		if(instance.constructor === String ) 
 			throw("cannot bind event to a string");
 
-		var events = instance.__levents;
+		var events = instance.levents;
 		if(!events)
 			return;
 
@@ -185,7 +194,271 @@ var LEvent = global.LEvent = GL.LEvent = {
 		if( instance.onLEventUnbinded )
 			instance.onLEventUnbinded( event_type, callback, target_instance );
 	},
-}
+
+	unbindAll: function(instance, targetInstance, callback){
+		if (!instance)
+		{
+			throw("LiteUtilities::unbindAll instance is null");
+		}
+
+		var events = instance.levents;
+		if (!events)
+		{
+			return;
+		}
+
+		if (targetInstance.onLEventUnbindAll)
+		{
+			instance.onLEventUnbindAll(targetInstance, callback);
+		}
+
+		if (!targetInstance)
+		{
+			delete instance.levents;
+			return;
+		}
+
+		for (var i in events)
+		{
+			var event = events[i];
+			for (var j = event.length - 1; j>= 0; --j)
+			{
+				if (event[j][1] != targetInstance || (callback && callback !== event[j][0]))
+				{
+					continue;
+				}
+				event.splice(j,1);
+			}
+		}
+	},
+
+	unbindAllEvent: function( instance, event_type )
+	{
+		if(!instance) 
+			throw("cannot unbind events in null");
+
+		var events = instance.levents;
+		if(!events)
+			return;
+		delete events[ event_type ];
+		if( instance.onLEventUnbindAll )
+			instance.onLEventUnbindAll( event_type, target_instance, callback );
+		return;
+	},
+
+	/**
+	* Tells if there is a binded callback that matches the criteria
+	* @method LEvent.isBind
+	* @param {Object} instance where the are the events binded
+	* @param {String} event_name string defining the event name
+	* @param {function} callback the callback
+	* @param {Object} target_instance [Optional] instance binded to callback
+	**/
+	isBind: function( instance, event_type, callback, target_instance )
+	{
+		if(!instance)
+			throw("LEvent cannot have null as instance");
+
+		var events = instance.levents;
+		if( !events )
+			return;
+
+		if( !events.hasOwnProperty(event_type) ) 
+			return false;
+
+		for(var i = 0, l = events[event_type].length; i < l; ++i)
+		{
+			var v = events[event_type][i];
+			if(v[0] === callback && v[1] === target_instance)
+				return true;
+		}
+		return false;
+	},
+
+	/**
+	* Tells if there is any callback binded to this event
+	* @method LEvent.hasBind
+	* @param {Object} instance where the are the events binded
+	* @param {String} event_name string defining the event name
+	* @return {boolean} true is there is at least one
+	**/
+	hasBind: function( instance, event_type )
+	{
+		if(!instance)
+			throw("LEvent cannot have null as instance");
+		var events = instance.levents;
+		if(!events || !events.hasOwnProperty( event_type ) || !events[event_type].length) 
+			return false;
+		return true;
+	},
+
+	/**
+	* Tells if there is any callback binded to this object pointing to a method in the target object
+	* @method LEvent.hasBindTo
+	* @param {Object} instance where there are the events binded
+	* @param {Object} target instance to check to
+	* @return {boolean} true is there is at least one
+	**/
+	hasBindTo: function( instance, target )
+	{
+		if(!instance)
+			throw("LEvent cannot have null as instance");
+		var events = instance.levents;
+
+		//no events binded
+		if(!events) 
+			return false;
+
+		for(var j in events)
+		{
+			var binds = events[j];
+			for(var i = 0; i < binds.length; ++i)
+			{
+				if(binds[i][1] === target) //one found
+					return true;
+			}
+		}
+
+		return false;
+	},
+
+	trigger: function(instance, event_type, params, reverse_order, expand_parameters)
+	{
+		if (!instance){
+			throw("trigger:function instance is null");
+		}
+		if (instance.constructor === String){
+			throw("cannot bind an event to string");
+		}
+
+		var events = instance.levents;
+		if (!events || !events.hasOwnProperty(event_type)){
+			return false;
+		}
+
+		var eventInst = events[event_type];
+		if (reverse_order)
+		{
+			for (var i = eventInst.length - 1; i >= 0; --i)
+			{
+				var event = eventInst[i];
+				if (expand_parameters)
+				{
+					if (event && event[0].apply(event[1], params) === true)
+					{
+						return true;
+					}
+					else
+					{
+						if (event && event[0].call(event[1], event_type, params) === true)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			for (var i=0; i<eventInst.length; ++i)
+			{
+				var event = eventInst[i];
+				if (expand_parameters)
+				{
+					if (event && event[0].apply(event[1], params) === true)
+					{
+						return true;
+					}
+					else
+					{
+						if (event && event[0].call(event[1], event_type, params) === true)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	},
+
+	triggerArray: function(instances, eventType, params, reverseOrder, expandParameters){
+		var blocked = false;
+		for (var i=0; i<instances.length; ++i)
+		{
+			var instance = instances[i];
+			if (!instance)
+			{
+				throw("LiteUtilities::triggerArray instance is null");
+			}
+			if (instance.constructor === String)
+			{
+				throw("LiteUtilities::triggerArray String cannot bind an event");
+			}
+
+			var events = instance.levents;
+			if (!events || !events.hasOwnProperty(eventType))
+			{
+				continue;
+			}
+
+			if (reverseOrder)
+			{
+				for (var j = events[eventType].length - 1; j >= 0; --j)
+				{
+					var event = events[eventType][j];
+					if (expandParameters)
+					{
+						if (event[0].apply(event[1], params) === true)
+						{
+							blocked = true;
+							break;
+						}
+					}
+					else
+					{
+						if (event[0].call(event[1], eventType, params) === true)
+						{
+							blocked = true;
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				for (var j = 0; j < events.length; ++j)
+				{
+					var event = events[eventType][j];
+					if (expandParameters)
+					{
+						if (event[0].apply(event[1], params) === true)
+						{
+							blocked = true;
+							break;
+						}
+					}
+					else
+					{
+						if (event[0].call(event[1], eventType, params) === true)
+						{
+							blocked = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+		return blocked;
+	},
+
+	extendObject: function(object){
+		object.bind = function(eventType, callback, instance)
+		{
+			return LEvent.bind(this, eventType, callback, instance);
+		};
+	},
+};
 
 if (!String.prototype.hasOwnProperty("replaceAll"))
 {

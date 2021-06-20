@@ -32,14 +32,13 @@ global.cloneCanvas = GL.cloneCanvas = function cloneCanvas(c){
 
 if (typeof(Image) != "undefined")
 {
-    Image.prototype.getPixels = function()
-    {
+    Image.prototype.getPixels = function(){
         var canvas = document.createElement('canvas');
         canvas.width = this.width;
         canvas.height = this.height;
         var ctx = canvas.getContext("2d");
         ctx.drawImage(this, 0, 0);
-        return ctx.getImageData(0, 0, this.width, this.height).data;
+        return ctx.getImageData(0,0,this.width, this.height).data;
     }
 }
 
