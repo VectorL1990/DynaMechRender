@@ -460,5 +460,118 @@ var LEvent = global.LEvent = GL.LEvent = {
 	},
 };
 
+if (!String.prototype.hasOwnProperty("replaceAll"))
+{
+    Object.defineProperty(String.prototype, "replaceAll", {
+        value: function(words){
+            var str = this;
+            for (var i in words)
+            {
+                str = str.split(i).join(words[i]);
+            }
+            return str;
+        },
+        enumerable: false
+    });
+}
+
+if (!String.prototype.hasOwnProperty("hashCode"))
+{
+	Object.defineProperty(String.prototype, "hashCode", {
+		value: function(){
+			var hash = 0, i, c, l;
+			if (this.length == 0)
+			{
+				return hash;
+			}
+			for (i = 0, l = this.length; i < l; ++i)
+			{
+				c = this.charCodeAt(i);
+				hash = ((hash<<5) - hash) + c;
+				hash |= 0;
+			}
+			return hash;
+		},
+		enumerable: false
+	});
+}
+
+if (!Array.prototype.hasOwnProperty("clone"))
+{
+	Object.defineProperty(Array.prototype, "clone", {
+		value: Array.prototype.concat,
+		enumerable: false
+	});
+}
+
+if (!Float32Array.prototype.hasOwnProperty("clone"))
+{
+	Object.defineProperty(Float32Array.prototype, "clone", {
+		value: function(){
+			return new Float32Array(this);
+		},
+		enumerable: false
+	});
+}
+
+global.wipeObject = function wipeObject(object)
+{
+	for (var property in object)
+	{
+		if (object.hasOwnProperty(property))
+		{
+			delete object[property];
+		}
+	}
+};
+
+global.extendClass = GL.extendClass = function extendClass(target, origin){
+	for (var property in origin)
+	{
+		if (target.hasOwnProperty(property))
+		{
+			continue;
+		}
+		target[i] = origin[i];
+	}
+
+	if (origin.prototype)
+	{
+		var propNames = Object.getOwnPropertyNames(origin.prototype);
+		for (var i=0; i<propNames.length; ++i)
+		{
+			var name = propNames[i];
+			if (target.prototype.hasOwnProperty(name))
+			{
+				continue;
+			}
+
+			if (origin.prototype.__lookupGetter__(name))
+			{
+				target.prototype.__defineGetter__(name, origin.prototype.__lookupGetter__(name));
+			}
+			else
+			{
+				target.prototype[name] = origin.prototype[name];
+			}
+
+			if (origin.prototype.__lookupGetter__(name))
+			{
+				target.prototype.__defineGetter__(name, origin.prototype.__lookupGetter__(name));
+			}
+		}
+	}
+
+	if (!target.hasOwnProperty("superclass"))
+	{
+		Object.defineProperty(target, "superclass", {
+			get: function(){
+				return origin;
+			},
+			enumerable: false
+		});
+	}
+}
+
 }
 )
