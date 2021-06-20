@@ -573,5 +573,64 @@ global.extendClass = GL.extendClass = function extendClass(target, origin){
 	}
 }
 
+// Temp not finished
+global.HttpRequest = GL.request = function HttpRequest(url, params, callBack, error, options){
+
+}
+
+global.getFileExtension = function getFileExtension(url){
+	var quesion = url.indexOf("?");
+	if (quesion != -1)
+	{
+		url = url.substr(0, quesion);
+	}
+	var point = url.lastIndexOf(".");
+	if (point == -1)
+	{
+		return "";
+	}
+	return url.substr(point + 1).toLowerCase();
+}
+
+// Temp not finished
+global.loadFileAtlas = GL.loadFileAtlas = function loadFileAtlas(url, callBack, sync){
+	var deferredCallback = null;
+
+}
+
+global.processFileAtlas = GL.processFileAtlas = function(data, skipTrim){
+	var lines = data.split("\n");
+	var files = {};
+
+	var currentFileLine = [];
+	var currentFileName = "";
+	for (var i=0; i<lines.length; i++)
+	{
+		var line = skipTrim ? lines[i] : lines[i].trim();
+		if (!line.length)
+		{
+			continue;
+		}
+		if (line[0] != "\\")
+		{
+			currentFileLine.push(line);
+			continue;
+		}
+		if (currentFileLine.length)
+		{
+			files[currentFileName] = currentFileLine.join("\n");
+		}
+		currentFileLine.length = 0;
+		currentFileName = line.substr(1);
+	}
+
+	if( currentFileLine.length )
+	{
+		files[ currentFileName ] = currentFileLine.join("\n");
+	}
+
+	return files;
+}
+
 }
 )
