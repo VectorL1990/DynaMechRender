@@ -219,6 +219,11 @@ global.DEG2RAD = 0.0174532925;
 global.RAD2DEG = 57.295779578552306;
 global.EPSILON = 0.000001;
 
+vec3.ZERO = vec3.fromValues(0,0,0);
+vec3.FRONT = vec3.fromValues(0,0,-1);
+vec3.UP = vec3.fromValues(0,1,0);
+vec3.RIGHT = vec3.fromValues(1,0,0);
+
 /**
  * Tells if one number is power of two (used for textures)
  */
@@ -278,6 +283,27 @@ typed_arrays.forEach(function(v){
     }
 });
 
+Math.clamp = function(v, a, b){
+    return (a>v? a:(b<v? b:v));
+}
 
+vec2.rotate = function(out, vec, angleInRad){
+    var x = vec[0];
+    var y = vec[1];
+    var cos = Math.cos(angleInRad);
+    var sin = Math.sin(angleInRad);
+    out[0] = x * cos - y * sin;
+	out[1] = x * sin + y * cos;
+	return out;
+}
+
+vec3.zero = function(a){
+    a[0] = a[1] = a[2] = 0.0;
+    return a;
+}
+
+vec2.perpdot = function(a,b){
+    return a[1] * b[0] + -a[0] * b[1];
+}
 
 })
