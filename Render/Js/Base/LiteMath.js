@@ -306,4 +306,119 @@ vec2.perpdot = function(a,b){
     return a[1] * b[0] + -a[0] * b[1];
 }
 
+vec2.computeSignedAngle = function(a, b){
+    // |axb| = |a||b|sin(theta)
+    // |a.b| = |a||b|cos(theta)
+    // tan(theta) = |axb| / |a.b|
+    return Math.atan2(vec2.perpdot(a, b), vec2.dot(a,b));
+}
+
+vec2.random = function(vec, scale){
+    scale = scale || 1.0;
+    vec[0] = Math.random() * scale;
+    vec[1] = Math.random() * scale;
+    return vec;
+}
+
+vec3.random = function(vec, scale)
+{
+	scale = scale || 1.0;
+	vec[0] = Math.random() * scale;
+	vec[1] = Math.random() * scale;
+	vec[2] = Math.random() * scale;
+	return vec;
+}
+
+vec3.zero = function(a){
+    a[0] = a[1] = a[2] = 0.0;
+    return a;
+}
+
+vec3.minValue = function(a){
+    if (a[0] < a[1] && a[0] < a[2])
+    {
+        return a[0];
+    }
+    if (a[1] < a[2])
+    {
+        return a[1];
+    }
+    return a[2];
+}
+
+vec3.maxValue = function(a){
+    if (a[0] > a[1] && a[0] > a[2])
+    {
+        return a[0];
+    }
+    if (a[1] > a[2])
+    {
+        return a[1];
+    }
+    return a[2];
+}
+
+vec3.addValue = function(out, a, v){
+    out[0] = a[0] + v;
+    out[1] = a[1] + v;
+    out[2] = a[2] + v;
+}
+
+vec3.subValue = function(out, a, v){
+    out[0] = a[0] - v;
+    out[1] = a[1] - v;
+    out[2] = a[2] - v;
+}
+
+vec3.toArray = function(vec){
+    return [vec[0], vec[1], vec[2]];
+}
+
+
+vec3.rotateX = function(out,vec,angle_in_rad)
+{
+	var y = vec[1], z = vec[2];
+	var cos = Math.cos(angle_in_rad);
+	var sin = Math.sin(angle_in_rad);
+
+	out[0] = vec[0];
+	out[1] = y * cos - z * sin;
+	out[2] = y * sin + z * cos;
+	return out;
+}
+
+vec3.rotateY = function(out,vec,angle_in_rad)
+{
+	var x = vec[0], z = vec[2];
+	var cos = Math.cos(angle_in_rad);
+	var sin = Math.sin(angle_in_rad);
+
+	out[0] = x * cos - z * sin;
+	out[1] = vec[1];
+	out[2] = x * sin + z * cos;
+	return out;
+}
+
+vec3.rotateZ = function(out,vec,angle_in_rad)
+{
+	var x = vec[0], y = vec[1];
+	var cos = Math.cos(angle_in_rad);
+	var sin = Math.sin(angle_in_rad);
+
+	out[0] = x * cos - y * sin;
+	out[1] = x * sin + y * cos;
+	out[2] = vec[2];
+	return out;
+}
+
+vec3.signedAngle = function(from, to, axis)
+{
+	var unsignedAngle = vec3.angle( from, to );
+	var cross_x = from[1] * to[2] - from[2] * to[1];
+	var cross_y = from[2] * to[0] - from[0] * to[2];
+	var cross_z = from[0] * to[1] - from[1] * to[0];
+	var sign = Math.sign(axis[0] * cross_x + axis[1] * cross_y + axis[2] * cross_z);
+	return unsignedAngle * sign;
+}
+
 })
