@@ -1,4 +1,4 @@
-
+// Temp not finished
 var LiteGUI = {
     root: null,
     content: null,
@@ -87,3 +87,45 @@ var LiteGUI = {
         return event;
     },
 };
+
+// This function is mainly for function property removement
+function purgeElement(node){
+    var attributeAndProperties = node.attributes;
+    var attributeName;
+    if (attributeAndProperties)
+    {
+        for (var i=0; i<attributeAndProperties.length; i++)
+        {
+            attributeName = attributeAndProperties[i].name;
+            if (typeof node[attributeName] === 'function')
+            {
+                node[attributeName] = null;
+            }
+        }
+    }
+
+    attributeAndProperties = node.childNodes;
+    if (attributeAndProperties)
+    {
+        for (var i=0; i<attributeAndProperties.length; i++)
+        {
+            purgeElement(node.childNodes[i]);
+        }
+    }
+}
+
+// Temp not finished
+if (typeof escapeHtmlEntities == 'undefined')
+{
+
+}
+
+// Temp not finished
+function beautifyCode(code, reserved, skipCss){
+
+}
+
+// Temp not finished
+function beautifyJSON(code, skipCss){
+
+}
