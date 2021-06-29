@@ -16,7 +16,7 @@ var LiteGUI = {
         {
             this.setWindowSize(options.width, options.height);
         }
-    }
+    },
 
     bind: function(element, event, callback){
         if (!element)
@@ -129,3 +129,117 @@ function beautifyCode(code, reserved, skipCss){
 function beautifyJSON(code, skipCss){
 
 }
+
+// Temp not finished
+function dataRUItoBlob(dataRUI){
+
+}
+
+(function(){
+    // Button part
+    function Button(value, options){
+        options = options || {};
+
+        if (typeof(options) === "function")
+        {
+            options = {callback: options};
+        }
+
+        var that = this;
+        var element = document.createElement("div");
+        element.className = "litegui button";
+
+        this.root = element;
+        var button = document.createElement("button");
+        this.content = button;
+        element.appendChild(button);
+
+        button.innerHTML = value;
+        button.addEventListener("click", function(e){
+            that.click();
+        });
+
+        this.click = function()
+        {
+            if (options.callback)
+            {
+                options.callback.call(that);
+            }
+        }
+    }
+
+    LiteGUI.Button = Button;
+
+
+    // SearchBox part
+    function SearchBox(value, options){
+        options = options || {};
+        value = value || "";
+        var element = document.createElement("div");
+        element.className = "litegui searchbox";
+    }
+
+    SearchBox.prototype.setValue = function(v){
+        this.input.value = v;
+        this.input.onchange();
+    };
+
+    SearchBox.prototype.getValue = function(){
+        return this.input.value;
+    }
+
+    LiteGUI.SearchBox = SearchBox;
+
+
+    // ContextMenu part
+    function ContextMenu(values, options){
+
+    }
+
+    LiteGUI.ContextMenu = ContextMenu;
+    LiteGUI.ContextualMenu = ContextMenu;
+
+
+    // CheckBox part
+    function CheckBox(value, bChange){
+
+    }
+
+    LiteGUI.CheckBox = CheckBox;
+
+
+    // createLitebox part
+    function createLitebox(state, bChange){
+
+    }
+    LiteGUI.createLitebox = createLitebox;
+
+
+    // List part
+    function List(id, items, options){
+
+    }
+    LiteGUI.List = List;
+
+
+    // Slider part
+    function Slider(value, options){
+
+    }
+    LiteGUI.Slider = Slider;
+
+
+    // LineEditor part
+    function LineEditor(value, options){
+
+    }
+    LiteGUI.LineEditor = LineEditor;
+
+
+    // ComplexList part
+    function ComplexList(options){
+
+    }
+    LiteGUI.ComplexList = ComplexList;
+
+})();
