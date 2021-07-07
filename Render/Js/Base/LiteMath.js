@@ -320,8 +320,7 @@ vec2.random = function(vec, scale){
     return vec;
 }
 
-vec3.random = function(vec, scale)
-{
+vec3.random = function(vec, scale){
 	scale = scale || 1.0;
 	vec[0] = Math.random() * scale;
 	vec[1] = Math.random() * scale;
@@ -375,8 +374,7 @@ vec3.toArray = function(vec){
 }
 
 
-vec3.rotateX = function(out,vec,angle_in_rad)
-{
+vec3.rotateX = function(out,vec,angle_in_rad){
 	var y = vec[1], z = vec[2];
 	var cos = Math.cos(angle_in_rad);
 	var sin = Math.sin(angle_in_rad);
@@ -387,8 +385,7 @@ vec3.rotateX = function(out,vec,angle_in_rad)
 	return out;
 }
 
-vec3.rotateY = function(out,vec,angle_in_rad)
-{
+vec3.rotateY = function(out,vec,angle_in_rad){
 	var x = vec[0], z = vec[2];
 	var cos = Math.cos(angle_in_rad);
 	var sin = Math.sin(angle_in_rad);
@@ -399,8 +396,7 @@ vec3.rotateY = function(out,vec,angle_in_rad)
 	return out;
 }
 
-vec3.rotateZ = function(out,vec,angle_in_rad)
-{
+vec3.rotateZ = function(out,vec,angle_in_rad){
 	var x = vec[0], y = vec[1];
 	var cos = Math.cos(angle_in_rad);
 	var sin = Math.sin(angle_in_rad);
@@ -411,8 +407,7 @@ vec3.rotateZ = function(out,vec,angle_in_rad)
 	return out;
 }
 
-vec3.signedAngle = function(from, to, axis)
-{
+vec3.signedAngle = function(from, to, axis){
 	var unsignedAngle = vec3.angle( from, to );
 	var cross_x = from[1] * to[2] - from[2] * to[1];
 	var cross_y = from[2] * to[0] - from[0] * to[2];
@@ -420,5 +415,125 @@ vec3.signedAngle = function(from, to, axis)
 	var sign = Math.sign(axis[0] * cross_x + axis[1] * cross_y + axis[2] * cross_z);
 	return unsignedAngle * sign;
 }
+
+vec3.polarToCartesian = function(out, v){
+    var r = v[0];
+	var lat = v[1];
+	var lon = v[2];
+	out[0] = r * Math.cos(lat) * Math.sin(lon);
+	out[1] = r * Math.sin(lat);
+	out[2] = r * Math.cos(lat) * Math.cos(lon);
+	return out;
+}
+
+/**
+ * 
+ * @param {*} out 
+ * @param {original vector} v 
+ * @param {n is the vector which is parallel to reflect surface} n 
+ */
+vec3.reflect = function(out, v, n){
+    var x = v[0]; var y = v[1]; var z = v[2];
+	vec3.scale( out, n, -2 * vec3.dot(v,n) );
+	out[0] += x;
+	out[1] += y;
+	out[2] += z;
+	return out;
+}
+
+vec4.random = function(vec, scale){
+    scale = scale || 1.0;
+    vec[0] = Math.random() * scale;
+    vec[1] = Math.random() * scale;
+    vec[2] = Math.random() * scale;
+    vec[3] = Math.random() * scale;
+    return vec;
+}
+
+vec4.toArray = function(vec){
+    return [vec[0], vec[1], vec[2], vec[3]];
+}
+
+/**
+ * Matrix part
+ */
+(function(){
+    mat3.IDENTITY = mat3.create();
+    mat4.IDENTITY = mat4.create();
+
+    mat4.toArray = function(mat){
+        return [mat[0],mat[1],mat[2],mat[3],mat[4],mat[5],mat[6],mat[7],mat[8],mat[9],mat[10],mat[11],mat[12],mat[13],mat[14],mat[15]];
+    };
+
+    mat4.setUpAndOrthonormalize = function(out, m, up){
+        if(m != out)
+            mat4.copy(out,m);
+        var right = out.subarray(0,3);
+        vec3.normalize(out.subarray(4,7),up);
+        var front = out.subarray(8,11);
+        vec3.cross( right, up, front );
+        vec3.normalize( right, right );
+        vec3.cross( front, right, up );
+        vec3.normalize( front, front );
+    };
+
+    mat4.multiplyVec3 = function(out, m, a) {
+        var x = a[0], y = a[1], z = a[2];
+        out[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
+        out[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+        out[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+        return out;
+    };
+
+    /**
+     * out[0] = (ox / ow + 1) / 2; This line transfer coordinate in -1~1 to 0~1 space
+     * @param {*} out 
+     * @param {MVP or VP matrix} m 
+     * @param {*} a 
+     * @returns 
+     */
+    mat4.projectVec3 = function(out, m, a){
+        var ix = a[0];
+        var iy = a[1];
+        var iz = a[2];
+
+        var ox = m[0] * ix + m[4] * iy + m[8] * iz + m[12];
+        var oy = m[1] * ix + m[5] * iy + m[9] * iz + m[13];
+        var oz = m[2] * ix + m[6] * iy + m[10] * iz + m[14];
+        var ow = m[3] * ix + m[7] * iy + m[11] * iz + m[15];
+
+        out[0] = (ox / ow + 1) / 2;
+        out[1] = (oy / ow + 1) / 2;
+        out[2] = (oz / ow + 1) / 2;
+        return out;
+    };
+
+    vec3.project = function(out, vec,  mvp, viewport) {
+        viewport = viewport || gl.viewport_data;
+    
+        var m = mvp;
+    
+        var ix = vec[0];
+        var iy = vec[1];
+        var iz = vec[2];
+    
+        var ox = m[0] * ix + m[4] * iy + m[8] * iz + m[12];
+        var oy = m[1] * ix + m[5] * iy + m[9] * iz + m[13];
+        var oz = m[2] * ix + m[6] * iy + m[10] * iz + m[14];
+        var ow = m[3] * ix + m[7] * iy + m[11] * iz + m[15];
+    
+        var projx =     (ox / ow + 1) / 2;
+        var projy = 1 - (oy / ow + 1) / 2;
+        var projz =     (oz / ow + 1) / 2;
+    
+        out[0] = projx * viewport[2] + viewport[0];
+        out[1] = projy * viewport[3] + viewport[1];
+        out[2] = projz; //ow
+        return out;
+    };
+
+    var unprojectMat = mat4.create();
+    var unprojectVec = vec4.create();
+})();
 
 })
