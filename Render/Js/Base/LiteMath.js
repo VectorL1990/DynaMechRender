@@ -534,6 +534,388 @@ vec4.toArray = function(vec){
 
     var unprojectMat = mat4.create();
     var unprojectVec = vec4.create();
+
+    /**
+     * This function transfer vector in 0~1 to -1~1
+     * 
+     * @param {*} out 
+     * @param {*} vec 
+     * @param {*} viewprojection 
+     * @param {viewport[2] = viewport width, viewport[3] = viewport height} viewport 
+     * @returns 
+     */
+    vec3.unproject = function(out, vec, viewprojection, viewport){
+        unprojectVec[0] = (vec[0] - viewport[0]) * 2.0 / viewport[2] - 1.0;
+        unprojectVec[1] = (vec[1] - viewport[1]) * 2.0 / viewport[3] - 1.0;
+        unprojectVec[2] = 2.0 * vec[2] - 1.0;
+        unprojectVec[3] = 1.0;
+        
+        if(!mat4.invert(unprojectMat,viewprojection)) 
+            return null;
+        
+        vec4.transformMat4(unprojectVec, unprojectVec, unprojectMat);
+        if(unprojectVec[3] === 0.0) 
+            return null;
+
+        out[0] = unprojectVec[0] / unprojectVec[3];
+        out[1] = unprojectVec[1] / unprojectVec[3];
+        out[2] = unprojectVec[2] / unprojectVec[3];
+        
+        return out;
+    }
+
+    mat4.rotateVec3 = function(out, m, a) {
+        var x = a[0], y = a[1], z = a[2];
+        out[0] = m[0] * x + m[4] * y + m[8] * z;
+        out[1] = m[1] * x + m[5] * y + m[9] * z;
+        out[2] = m[2] * x + m[6] * y + m[10] * z;
+        return out;
+    };
+
+    mat4.fromTranslationFrontTop = function (out, pos, front, top){
+        vec3.cross(out.subarray(0,3), front, top);
+        out.set(top,4);
+        out.set(front,8);
+        out.set(pos,12);
+        return out;
+    }
+
+    mat4.translationMatrix = function (v){
+        var out = mat4.create();
+        out[12] = v[0];
+        out[13] = v[1];
+        out[14] = v[2];
+        return out;
+    }
+
+    mat4.setTranslation = function (out, v){
+        out[12] = v[0];
+        out[13] = v[1];
+        out[14] = v[2];
+        return out;
+    }
+
+    mat4.getTranslation = function (out, matrix){
+        out[0] = matrix[12];
+        out[1] = matrix[13];
+        out[2] = matrix[14];
+        return out;
+    }
+
+    //returns the matrix without rotation
+    mat4.toRotationMat4 = function (out, mat) {
+        mat4.copy(out,mat);
+        out[12] = out[13] = out[14] = 0.0;
+        return out;
+    };
+
+    mat4.swapRows = function(out, mat, row, row2){
+        if(out != mat)
+        {
+            mat4.copy(out, mat);
+            out[4*row] = mat[4*row2];
+            out[4*row+1] = mat[4*row2+1];
+            out[4*row+2] = mat[4*row2+2];
+            out[4*row+3] = mat[4*row2+3];
+            out[4*row2] = mat[4*row];
+            out[4*row2+1] = mat[4*row+1];
+            out[4*row2+2] = mat[4*row+2];
+            out[4*row2+3] = mat[4*row+3];
+            return out;
+        }
+
+        var temp = new Float32Array(matrix.subarray(row*4,row*5));
+        matrix.set( matrix.subarray(row2*4,row2*5), row*4 );
+        matrix.set( temp, row2*4 );
+        return out;
+    }
+
+    //used in skinning
+    mat4.scaleAndAdd = function(out, mat, mat2, v)
+    {
+        out[0] = mat[0] + mat2[0] * v; 	out[1] = mat[1] + mat2[1] * v; 	out[2] = mat[2] + mat2[2] * v; 	out[3] = mat[3] + mat2[3] * v;
+        out[4] = mat[4] + mat2[4] * v; 	out[5] = mat[5] + mat2[5] * v; 	out[6] = mat[6] + mat2[6] * v; 	out[7] = mat[7] + mat2[7] * v;
+        out[8] = mat[8] + mat2[8] * v; 	out[9] = mat[9] + mat2[9] * v; 	out[10] = mat[10] + mat2[10] * v; 	out[11] = mat[11] + mat2[11] * v;
+        out[12] = mat[12] + mat2[12] * v;  out[13] = mat[13] + mat2[13] * v; 	out[14] = mat[14] + mat2[14] * v; 	out[15] = mat[15] + mat2[15] * v;
+        return out;
+    }
+})();
+
+/**
+ * lambda0 = cos(theta/2)
+ * lambdai = p*sin(theta/2)
+ * @param {*} axis 
+ * @param {*} rad 
+ * @returns 
+ */
+quat.fromAxisAngle = function(axis, rad)
+{
+    var out = quat.create();
+    rad = rad * 0.5;
+    var s = Math.sin(rad);
+    out[0] = s * axis[0];
+    out[1] = s * axis[1];
+    out[2] = s * axis[2];
+    out[3] = Math.cos(rad);
+    return out;
+}
+
+quat.lookRotation = (function(){
+	var vector = vec3.create();
+	var vector2 = vec3.create();
+	var vector3 = vec3.create();
+
+	return function( q, front, up )
+	{
+		vec3.normalize(vector,front);
+		vec3.cross( vector2, up, vector );
+		vec3.normalize(vector2,vector2);
+		vec3.cross( vector3, vector, vector2 );
+
+		var m00 = vector2[0];
+		var m01 = vector2[1];
+		var m02 = vector2[2];
+		var m10 = vector3[0];
+		var m11 = vector3[1];
+		var m12 = vector3[2];
+		var m20 = vector[0];
+		var m21 = vector[1];
+		var m22 = vector[2];
+
+		var num8 = (m00 + m11) + m22;
+
+		 if (num8 > 0)
+		 {
+			 var num = Math.sqrt(num8 + 1);
+			 q[3] = num * 0.5;
+			 num = 0.5 / num;
+			 q[0] = (m12 - m21) * num;
+			 q[1] = (m20 - m02) * num;
+			 q[2] = (m01 - m10) * num;
+			 return q;
+		 }
+		 if ((m00 >= m11) && (m00 >= m22))
+		 {
+			 var num7 = Math.sqrt(((1 + m00) - m11) - m22);
+			 var num4 = 0.5 / num7;
+			 q[0] = 0.5 * num7;
+			 q[1] = (m01 + m10) * num4;
+			 q[2] = (m02 + m20) * num4;
+			 q[3] = (m12 - m21) * num4;
+			 return q;
+		 }
+		 if (m11 > m22)
+		 {
+			 var num6 = Math.sqrt(((1 + m11) - m00) - m22);
+			 var num3 = 0.5 / num6;
+			 q[0] = (m10+ m01) * num3;
+			 q[1] = 0.5 * num6;
+			 q[2] = (m21 + m12) * num3;
+			 q[3] = (m20 - m02) * num3;
+			 return q; 
+		 }
+		 var num5 = Math.sqrt(((1 + m22) - m00) - m11);
+		 var num2 = 0.5 / num5;
+		 q[0] = (m20 + m02) * num2;
+		 q[1] = (m21 + m12) * num2;
+		 q[2] = 0.5 * num5;
+		 q[3] = (m01 - m10) * num2;
+		 return q;
+	};
+})();
+
+/**
+ * Change quaternion to euler angle
+ * @param {*} out 
+ * @param {*} q 
+ * @returns 
+ */
+quat.toEuler = function(out, q)
+{
+    var heading = Math.atan2(2*q[1]*q[3] - 2*q[0]*q[2], 1 - 2*q[1]*q[1] - 2*q[2]*q[2]);
+    var attitude = Math.asin(2*q[0]*q[1] + 2*q[2]*q[3]);
+    var bank = Math.atan2(2*q[0]*q[3] - 2*q[1]*q[2], 1 - 2*q[0]*q[0] - 2*q[2]*q[2]);
+	if(!out)
+		out = vec3.create();
+	vec3.set(out, heading, attitude, bank);
+	return out;
+}
+
+quat.fromEuler = function(out, vec) {
+	var heading = vec[0];
+	var attitude = vec[1];
+	var bank = vec[2];
+
+	var C1 = Math.cos(heading); //yaw
+	var C2 = Math.cos(attitude); //pitch
+	var C3 = Math.cos(bank); //roll
+	var S1 = Math.sin(heading);
+	var S2 = Math.sin(attitude);
+	var S3 = Math.sin(bank);
+
+	var w = Math.sqrt(1.0 + C1 * C2 + C1*C3 - S1 * S2 * S3 + C2*C3) * 0.5;
+	if(w == 0.0)
+	{
+		w = 0.000001;
+		//quat.set(out, 0,0,0,1 );
+		//return out;
+	}
+
+	var x = (C2 * S3 + C1 * S3 + S1 * S2 * C3) / (4.0 * w);
+	var y = (S1 * C2 + S1 * C3 + C1 * S2 * S3) / (4.0 * w);
+	var z = (-S1 * S3 + C1 * S2 * C3 + S2) /(4.0 * w);
+	quat.set(out, x,y,z,w );
+	quat.normalize(out,out);
+	return out;
+};
+
+
+//not tested, it gives weird results sometimes
+quat.fromMat4 = function(out,m)
+{
+	var trace = m[0] + m[5] + m[10];
+	if ( trace > 0.0 )
+	{
+		var s = Math.sqrt( trace + 1.0 );
+		out[3] = s * 0.5;//w
+		var recip = 0.5 / s;
+		out[0] = ( m[9] - m[6] ) * recip; //2,1  1,2
+		out[1] = ( m[8] - m[2] ) * recip; //0,2  2,0
+		out[2] = ( m[4] - m[1] ) * recip; //1,0  0,1
+	}
+	else
+	{
+		var i = 0;
+		if( m[5] > m[0] )
+		 i = 1;
+		if( m[10] > m[i*4+i] )
+		 i = 2;
+		var j = ( i + 1 ) % 3;
+		var k = ( j + 1 ) % 3;
+		var s = Math.sqrt( m[i*4+i] - m[j*4+j] - m[k*4+k] + 1.0 );
+		out[i] = 0.5 * s;
+		var recip = 0.5 / s;
+		out[3] = ( m[k*4+j] - m[j*4+k] ) * recip;//w
+		out[j] = ( m[j*4+i] + m[i*4+j] ) * recip;
+		out[k] = ( m[k*4+i] + m[i*4+k] ) * recip;
+	}
+	quat.normalize(out,out);
+}
+
+//col according to common matrix notation, here are stored as rows
+vec3.getMat3Column = function(out, m, index )
+{
+	out[0] = m[index*3];
+	out[1] = m[index*3 + 1];
+	out[2] = m[index*3 + 2];
+	return out;
+}
+
+mat3.setColumn = function(out, v, index )
+{
+	out[index*3] = v[0];
+	out[index*3+1] = v[1];
+	out[index*3+2] = v[2];
+	return out;
+}
+
+
+//http://matthias-mueller-fischer.ch/publications/stablePolarDecomp.pdf
+//reusing the previous quaternion as an indicator to keep perpendicularity
+quat.fromMat3AndQuat = (function(){
+	var temp_mat3 = mat3.create();
+	var temp_quat = quat.create();
+	var Rcol0 = vec3.create();
+	var Rcol1 = vec3.create();
+	var Rcol2 = vec3.create();
+	var Acol0 = vec3.create();
+	var Acol1 = vec3.create();
+	var Acol2 = vec3.create();
+	var RAcross0 = vec3.create();
+	var RAcross1 = vec3.create();
+	var RAcross2 = vec3.create();
+	var omega = vec3.create();
+	var axis = mat3.create();
+
+	return function( q, A, max_iter )
+	{
+		max_iter = max_iter || 25;
+		for (var iter = 0; iter < max_iter; ++iter)
+		{
+			var R = mat3.fromQuat( temp_mat3, q );
+			vec3.getMat3Column(Rcol0,R,0);
+			vec3.getMat3Column(Rcol1,R,1);
+			vec3.getMat3Column(Rcol2,R,2);
+			vec3.getMat3Column(Acol0,A,0);
+			vec3.getMat3Column(Acol1,A,1);
+			vec3.getMat3Column(Acol2,A,2);
+			vec3.cross( RAcross0, Rcol0, Acol0 );
+			vec3.cross( RAcross1, Rcol1, Acol1 );
+			vec3.cross( RAcross2, Rcol2, Acol2 );
+			vec3.add( omega, RAcross0, RAcross1 );
+			vec3.add( omega, omega, RAcross2 );
+			var d = 1.0 / Math.abs( vec3.dot(Rcol0,Acol0) + vec3.dot(Rcol1,Acol1) + vec3.dot(Rcol2,Acol2) ) + 1.0e-9;
+			vec3.scale( omega, omega, d );
+			var w = vec3.length(omega);
+			if (w < 1.0e-9)
+				break;
+			vec3.scale(omega,omega,1/w); //normalize
+			quat.setAxisAngle( temp_quat, omega, w );
+			quat.mul( q, temp_quat, q );
+			quat.normalize(q,q);
+		}
+		return q;
+	};
+})();
+
+//http://number-none.com/product/IK%20with%20Quaternion%20Joint%20Limits/
+quat.rotateToFrom = (function(){ 
+	var tmp = vec3.create();
+	return function(out, v1, v2)
+	{
+		out = out || quat.create();
+		var axis = vec3.cross(tmp, v1, v2);
+		var dot = vec3.dot(v1, v2);
+		if( dot < -1 + 0.01){
+			out[0] = 0;
+			out[1] = 1; 
+			out[2] = 0; 
+			out[3] = 0; 
+			return out;
+		}
+		out[0] = axis[0] * 0.5;
+		out[1] = axis[1] * 0.5; 
+		out[2] = axis[2] * 0.5; 
+		out[3] = (1 + dot) * 0.5; 
+		quat.normalize(out, out); 
+		return out;    
+	}
+})();
+
+quat.lookAt = (function(){ 
+	var axis = vec3.create();
+	
+	return function( out, forwardVector, up )
+	{
+		var dot = vec3.dot( vec3.FRONT, forwardVector );
+
+		if ( Math.abs( dot - (-1.0)) < 0.000001 )
+		{
+			out.set( vec3.UP );
+			out[3] = Math.PI;
+			return out;
+		}
+		if ( Math.abs(dot - 1.0) < 0.000001 )
+		{
+			return quat.identity( out );
+		}
+
+		var rotAngle = Math.acos( dot );
+		vec3.cross( axis, vec3.FRONT, forwardVector );
+		vec3.normalize( axis, axis );
+		quat.setAxisAngle( out, axis, rotAngle );
+		return out;
+	}
 })();
 
 })

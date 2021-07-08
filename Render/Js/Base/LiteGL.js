@@ -42,13 +42,40 @@ if (typeof(Image) != "undefined")
     }
 }
 
-var DDS = (function(){
+(function(){
+    var DDS = (function(){
 
+    })();
+    
+    if (typeof(global) != "undefined")
+    {
+        global.DDS = DDS;
+    }
 })();
 
-if (typeof(global) != "undefined")
-{
-    global.DDS = DDS;
-}
+(function(){
+    GL.Indexer = function Indexer(){
+        this.unique = [];
+        this.indices = [];
+        // map's key represents obj's json string, value represents number of indice
+        this.map = {};
+    }
+    GL.Indexer.prototype = {
+        add: function(obj){
+            var key = JSON.stringify(obj);
+            if (!(key in this.map))
+            {
+                // This means that 
+                this.map[key] = this.unique.length;
+                this.unique.push(obj);
+            }
+            return this.map[key];
+        }
+    };
+
+    GL.Buffer = function Buffer(target, data, spacing, streamType, gl){
+        
+    }
+})();
 
 })
