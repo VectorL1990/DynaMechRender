@@ -26,6 +26,36 @@ var LiteGUI = {
       }
       LiteGUI.windows = [];
     });
-
   },
+
+  /**
+   * 
+   * @param {*} element 
+   * @param {*} event 
+   * @param {*} callback 
+   */
+  bind: function(element, event, callback)
+  {
+    if (!element)
+    {
+      throw("can not bind to null");
+    }
+    if (!event)
+    {
+      throw("event bind missing");
+    }
+    if (!callback)
+    {
+      throw("bind callback missing");
+    }
+
+    function inner(element)
+    {
+      if (element.addEventListener)
+      {
+        element.addEventListener(event, callback);
+      }
+    }
+  },
+
 }
