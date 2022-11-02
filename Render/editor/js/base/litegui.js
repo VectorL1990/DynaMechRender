@@ -55,7 +55,49 @@ var LiteGUI = {
       {
         element.addEventListener(event, callback);
       }
+      else if (element.__events)
+      {
+        element.__events.addEventListener(event, callback);
+      }
+      else
+      {
+        var dummy = document.createElement("span");
+        dummy.widget = element;
+        Object.defineProperty(element, "__events", {
+          enumerable: false,
+          configurable: false,
+          writable: false,
+          value: dummy
+        });
+        element.__events.addEventListener(event, callback);
+      }
     }
+  },
+
+  /**
+   * 
+   * @param {*} litegui_element 
+   */
+  add: function(litegui_element)
+  {
+    this.content.appendChild(litegui_element.root || litegui_element);
+  },
+
+  remove: function(element)
+  {
+    if (!element)
+    {
+      return;
+    }
+
+  },
+
+  newWindow: function (title, width, height, options)
+  {
+    options = options || {}
+    var new_window = window.open("", "", "width=" + width + ", height=" + height + ", location=no, status=no, menubar=no, titlebar=no, fullscreen=yes");
+    
+
   },
 
 }
