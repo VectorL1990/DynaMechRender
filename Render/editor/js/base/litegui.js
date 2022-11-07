@@ -8,15 +8,10 @@ var LiteGUI = {
   {
     options = options || {};
 
-    this.container = null;
-    if (!this.container)
-    {
-      this.container = document.body;
-    }
+    this.container = document.body;
 
-    this.root = this.content = this.container;
-    this.root.className = "litegui-wrap fullscreen";
-    this.content.className = "litegui-maincontent";
+    this.container.className = "litegui-wrap fullscreen";
+    this.container.className = "litegui-maincontent";
 
     window.addEventListener("beforeunload", function(e)
     {
@@ -47,6 +42,23 @@ var LiteGUI = {
     if (!callback)
     {
       throw("bind callback missing");
+    }
+
+    if (element.constructor === String)
+    {
+      element = document.querySelectorAll(element);
+    }
+
+    if (element.constructor === NodeList || element.constructor === Array)
+    {
+      for (var i=0; i<element.length; i++)
+      {
+        inner(element[i]);
+      }
+    }
+    else
+    {
+      inner(element);
     }
 
     function inner(element)
