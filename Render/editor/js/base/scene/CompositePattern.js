@@ -92,6 +92,13 @@ CompositePattern.prototype.addChild = function (node, index, options)
   }
 }
 
+/**
+ * 
+ * @param {*} node 
+ * @param {*} param1 
+ * @param {*} param2 
+ * @returns 
+ */
 CompositePattern.prototype.removeChild = function (node, param1, param2)
 {
   if (!node)
@@ -141,7 +148,65 @@ CompositePattern.prototype.removeChild = function (node, param1, param2)
     }
     for (var i = 0; i < item._children.length; i++)
     {
-      
+      var child = item._children[i];
+      if (child._in_tree)
+      {
+        LEvent.trigger(child._in_tree, "treeItemRemoved", child);
+        child._in_tree = null;
+      }
+      inner_recursive(child);
     }
+  }
+
+  return true;
+}
+
+CompositePattern.prototype.removeAllChildren = function(param1, param2)
+{
+  if (this._children)
+  {
+    while (this._children.length > 0)
+    {
+      this.removeChild(this._children[0], param1, param2);
+    }
+  }
+}
+
+CompositePattern.prototype.serializeChildren = function(simplified)
+{
+  var r = [];
+  if (this._children)
+  {
+    for (var i in this._children)
+    {
+      r.push(this._children[i].serialize(false, simplified))
+    }
+  }
+  return r;
+}
+
+CompositePattern.prototype.configureChildren = function(serialized_data, components_aside)
+{
+  if (!serialized_data.children)
+  {
+    return;
+  }
+
+  for (var i=0; i<serialized_data.children.length; i++)
+  {
+    var child = serialized_data.children[i];
+
+    var node = new this.constructor(child.id);
+
+    if (child.uid)
+    {
+      node.uid = child.uid;
+    }
+    if (child.editor)
+    {
+      node._editor = child.editor;
+    }
+    this.addChild(node);
+    node.configure(child, components_aside);
   }
 }
