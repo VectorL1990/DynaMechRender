@@ -1,0 +1,4 @@
+function ComponentContainer()
+{
+  this.components = [];
+}
