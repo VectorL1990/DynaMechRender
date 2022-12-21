@@ -15,3 +15,8 @@ BaseComponent.prototype.configure = function (o)
 {
   
 }
+
+BaseComponent.prototype.serialize = function ()
+{
+  
+}
