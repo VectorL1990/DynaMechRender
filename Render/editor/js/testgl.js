@@ -1,5 +1,3 @@
-
-
 (function (global) {
   
   var GL = global.GL = {};
@@ -107,4 +105,3 @@
   
 
 })(typeof (window) != undefined ? window : (typeof (self) != "undefined" ? self : global));
-
