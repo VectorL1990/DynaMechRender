@@ -11,16 +11,8 @@ var CORE = {
       url: "config.json?nocache=" + performance.now(),
       dataType: "json",
       success: this.configLoaded.bind(this)
-      //success: this.onlyTest.bind(this)
     });
-    //this.onlyTest();
   },
-
-  
-  onlyTest: function () {
-    console.log("only test");
-  },
-
   
   request: function (request)
   {
