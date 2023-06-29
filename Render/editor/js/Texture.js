@@ -1,15 +1,22 @@
-Texture.DEFAULT_TYPE = GL.
+Texture.DEFAULT_TYPE = GL.UNSIGNED_BYTE;
+Texture.DEFAULT_FORMAT = GL.RGBA;
+Texture.DEFAULT_MAG_FILTER = GL.LINEAR;
+Texture.DEFAULT_MIN_FILTER = GL.LINEAR;
+Texture.DEFAULT_WRAP_S = GL.CLAMP_TO_EDGE;
+Texture.DEFAULT_WRAP_T = GL.CLAMP_TO_EDGE;
+Texture.EXTENSION = "png";
 
 function Texture(width, height, options, gl) {
   if (!gl) {
     throw ("gl is empty, create texture failed");
   }
 
-  // all variables contained
+  // init all variables contained
   this.width = parseInt(width);
   this.height = parseInt(height);
   this.handler = gl.createTexture();
   this.format = options.format || Texture.DEFAULT_TYPE;
+  this.has_mipmaps = false;
   
   if (this.format == gl.DEPTH_COMPONENT &&
     gl.webgl_version == 1 &&
@@ -32,6 +39,9 @@ function Texture(width, height, options, gl) {
 			this.type = this.format == gl.RGB ? gl.RGB16F : gl.RGBA16F;
     }
   }
+
+  if ((!isPowerOfTwo(this.width) || !isPowerOfTwo(this.height)) &&
+      () &&)
 
   
 
