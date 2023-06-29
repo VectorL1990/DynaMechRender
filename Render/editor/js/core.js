@@ -12,6 +12,7 @@ var CORE = {
       dataType: "json",
       success: this.configLoaded.bind(this)
     });
+    //this.configLoaded.bind(this)
   },
   
   request: function (request)
@@ -149,7 +150,7 @@ var CORE = {
 		}
 	},
 
-  configLoaded: function (config) {
+  configLoaded: function () {
     
     console.log("enter configLoaded!");
     this.request({
@@ -199,23 +200,38 @@ var CORE = {
     if (this._modules.indexOf(module) != -1) {
       return;
     }
+    this._modules.push(module);
 
-    if (module.init) {
-      module.init();
-    }
+    /*if (module.init) {
+      module.init(options);
+    }*/
   },
 
   launch: function () {
     console.log("run core launch");
     
+    var engine_params = {
+      webgl_version: 1,
+      width: 640,
+      height: 480,
+    };
+    Engine.init_engine(engine_params);
+
     this.initModules();
+
+    var start_loop_params = {
+      Renderer: Renderer
+    }
+    Engine.start_loop(start_loop_params);
   },
 
   initModules: function ()
   {
-    console.log("modules number is: %i", this._modules.length);
+    console.log("GL.gl is:");
+    console.log(GL.gl);
     var options = {
-      liteGUI: LiteGUI
+      liteGUI: LiteGUI,
+      gl: GL.gl
     };
     for (var i in this._modules)
     {

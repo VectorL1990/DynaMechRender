@@ -6,19 +6,47 @@ var Renderer = {
 
   init: function () {
     console.log("simple render module init!");
+
+    var container = document.querySelector("body");
+
+    var antialiasing = true;
+    var webgl_version = 1;
+
+    gl = GL.create({
+      version: webgl_version,
+      antialiasing: antialiasing,
+      alpha: false,
+      stencil: true,
+      premultipliedAlpha: false,
+      width: 640,
+      height: 480,
+    });
+
+    gl.canvas.width = 640;
+    gl.canvas.height = 480;
+
+    gl.ondraw = this.render.bind(this);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
+
+    container.appendChild(gl.canvas);
+    this.canvas = gl.canvas;
+    this.gl = gl;
+    gl.animate();
+
+    this.testDT = 0.0;
+
+    //var drawarea = document.getElementById("drawarea");
+    //this.canvas_manager = new CanvasManager({
+    //  webgl_version: 1,
+    //  container: drawarea,
+    //  full: true,
+    //  antialiasing: true
+    //});
+    //this.canvas_manager.addWidget(this, -10);
   },
-
-  processVisibleData: function (scene, cameras, instances) {
-    for (var i = 0; i < cameras.length; ++i) {
-      var camera = cameras[i];
-      camera.prepare();
-    }
-  },
-
-
-
-
-  
 
   initBuffers: function () {
       // Create a buffer for the square's positions.

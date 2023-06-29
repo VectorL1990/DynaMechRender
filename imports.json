@@ -2,9 +2,7 @@
 	"version": 0.64,
 	"imports":[
 		"Render/editor/js/gl-matrix-min.js",
-		"Render/editor/js/litegl.js",
-		"Render/editor/js/litegui.js",
-		"Render/editor/js/canvasManager.js",
+		"Render/editor/js/canvas_manager.js",
 		"Render/editor/js/render.js"
 	],
 	"async": [

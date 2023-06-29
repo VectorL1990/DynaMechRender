@@ -1,33 +1,6 @@
 var InterfaceModule = {
   _liteGUI: null,
 
-  testinit: function (options) {
-    options = options || {};
-
-    var side_panel_width = 360;
-
-    var mainarea = new LiteGUI.Area({
-      id: "mainarea",
-      content_id: "workarea",
-      height: "calc(100% - 30px)",
-      autoresize: true,
-      inmediateResize: true,
-      minSplitSize: 200
-    });
-
-    this.mainarea = mainarea;
-    mainarea.split("horizontal", [null, side_panel_width], true);
-    console.log("liteGUI is: ");
-    console.log(LiteGUI);
-    if (options.liteGUI) {
-      _liteGUI = options.liteGUI;
-      _liteGUI.add(mainarea);
-    }
-    LiteGUI.add(mainarea);
-
-    this.createTabs();
-  },
-
   init: function (options) {
     options = options || {};
 
