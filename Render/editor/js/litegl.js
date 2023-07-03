@@ -75,6 +75,10 @@
       global.gl = null;
     }
 
+    // declare variables here
+    gl.cur_fbo = null;
+    gl.rbo_pool = {};
+
     return gl;
   }
   
