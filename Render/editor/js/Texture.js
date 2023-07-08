@@ -412,13 +412,24 @@ Texture.prototype.drawTo = function (callback, params) {
         continue;
       }
       
-      // which means we find a available rbo for rendering
+      // which means we find a rbo available rbo for rendering
       rbo = gl.rbo_pool[i];
       gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
       gl.rbo_pool[i][0] = false;
 
       break;
     }
+  } else {
+    rbo = gl.createRenderBuffer();
+    rbo.width = this.width;
+    rbo.height = this.height;
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+  }
+
+  if (this.format == gl.DEPTH_COMPONENT) {
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, this.width, this.height);
+  } else {
+    
   }
 }
 
