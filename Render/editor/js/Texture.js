@@ -420,20 +420,51 @@ Texture.prototype.drawTo = function (callback, params) {
       break;
     }
   } else {
+    var now = UTILS.getTime();
     rbo = gl.createRenderBuffer();
     rbo.width = this.width;
     rbo.height = this.height;
+    rbo.createTime = now;
     gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
   }
 
   if (this.format == gl.DEPTH_COMPONENT) {
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, this.width, this.height);
   } else {
-    
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
   }
+
+  gl.viewport(0,0,this.width,this.height);
+
+  if (this.texture_type == gl.TEXTURE_2D) {
+    if (this.format !== gl.DEPTH_COMPONENT) {
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.handler, 0);
+      gl.framebufferRenderBuffer(gl.FRAMEBUFFER, gl.DEPTH_COMPONENT, gl.RENDERBUFFER, rbo);
+    } else {
+      gl.framebufferRenderBuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_COMPONENT, gl.TEXTURE_2D, this.handler, 0);
+    }
+    callback(this, params);
+  } else if (this.texture_type == gl.TEXTURE_CUBE_MAP) {
+    // TODO: 
+  }
+
+  this.data = null;
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, old_fbo);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  gl.viewport(v[0], v[1], v[2], v[3]);
+
+  return this;
 }
 
 Texture.prototype.copyTo = function (target, shader, uniforms) {
+  if (!target) {
+    throw("render target is null");
+  }
+  var old_fbo = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+  var viewport = gl.getViewport();
+
 
 }
 
@@ -442,15 +473,65 @@ Texture.prototype.blit = function (target, shader, uniforms) {
 }
 
 Texture.prototype.toViewport = function (shader, uniforms) {
+  var mesh = Mesh.getScreenQuad();
+  this.bind(0);
+  if (uniforms) {
+    shader.uniforms(uniforms);
+  }
+  shader.draw(mesh, gl.TRIANGLES);
+}
+
+Texture.createFromURL = function (url, options, on_complete, gl) {
+  var texture = new GL.Texture(1, 1, options, gl);
+  texture.bind();
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  var default_color = options.tmp_color;
+  var tmp_color = options.type == gl.FLOAT?new Float32Array(default_color) : new Uint8Array(default_color);
+  gl.texImage2D(gl.TEXTURE_2D,
+    0,
+    texture.format,
+    texture.width,
+    texture.height,
+    0,
+    texture.format,
+    texture.type,
+    tmp_color
+    );
+
+  gl.bindTexture(texture.texture_type, null);
+  
+  var ext = null;
+  if (options.extension) {
+    ext = options.extension;
+  }
+
   
 }
 
-Texture.fromURL = function (url, options, on_complete, gl) {
-
-}
-
 Texture.createFromImage = function (img, options) {
-  var texture = new GL.Texture(img.width, img.height, )
+  var texture = new GL.Texture(img.width, img.height, options);
+  texture.uploadImage(img, options);
+
+  gl.texParameteri(texture.texture_type, gl.TEXTURE_MAG_FILTER, texture.magFilter);
+  gl.texParameteri(texture.texture_type, gl.TEXTURE_MIN_FILTER, texture.minFilter);
+  gl.texParameteri(texture.texture_type, gl.TEXTURE_WRAP_S, texture.wrapS);
+  gl.texParameteri(texture.texture_type, gl.TEXTURE_WRAP_T, texture.wrapT);
+
+  if (MATH_UTILS.isPowerOfTwo(texture.width) && MATH_UTILS.isPowerOfTwo(texture.height)) {
+    if (options.minFilter && options.minFilter != gl.NEAREST && options.minFilter != gl.LINEAR) {
+      texture.bind();
+      gl.generateMipmap(texture.texture_type);
+      texture.has_mipmaps = true;
+    }
+  } else {
+    gl.texParameteri(texture.texture_type, gl.TEXTURE_MIN_FILTER, GL.LINEAR);
+    gl.texParameteri(texture.texture_type, gl.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+    gl.texParameteri(texture.texture_type, gl.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+    texture.has_mipmaps = false;
+  }
+  gl.bindTexture(texture.texture_type, null);
+  texture.data = img;
+  return texture;
 }
 
 Texture.fromMemory = function (w, h, pixels, options) {
