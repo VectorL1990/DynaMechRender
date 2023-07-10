@@ -2,6 +2,10 @@ var ResourceManager = {
 
   format_parsers = {},
 
+  loadResources: function (resources, options) {
+
+  },
+
   load: function (url, options, on_complete, on_error) {
     
   },
@@ -62,6 +66,18 @@ var ResourceManager = {
   },
 
   parseTexture: function () {
+    
+  },
+
+  getResource: function (url, constructor) {
+
+  },
+
+  getResourcesData: function (resource_names, allow_files) {
+    
+  },
+
+  createResource: function (filename, data, must_register) {
     
   },
 }
