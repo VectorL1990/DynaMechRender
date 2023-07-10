@@ -16,6 +16,16 @@ GL.Buffer = function Buffer(target, data, spacing, stream_type, gl) {
   }
 }
 
+Buffer.prototype.bind = function (location, gl) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+  gl.enableVertexAttribArray(location);
+  gl.vertexAttribPointer(location, this.spacing, this.buffer.gl_type, false, 0, 0);
+}
+
+Buffer.prototype.unbind = function (location, gl) {
+
+}
+
 Buffer.prototype.upload = function (stream_type) {
   if (!gl) {
     throw ("gl is null, buffer upload failed");
@@ -44,4 +54,18 @@ Buffer.prototype.upload = function (stream_type) {
 
   gl.bindBuffer(this.target, this.buffer);
   gl.bufferData(this.target, data, stream_type);
+}
+
+Buffer.prototype.setData = function (data, offset) {
+  if (!data.buffer) {
+    
+  }
+}
+
+Buffer.prototype.uploadRange = function (start, size) {
+
+}
+
+Buffer.prototype.delete = function() {
+  
 }
