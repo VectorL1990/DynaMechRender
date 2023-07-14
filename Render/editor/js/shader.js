@@ -24,9 +24,12 @@ function Shader(vertSrc, fragSrc, macros) {
   this.fs = fs;
 
 
-
-
+  Shader.attrib_active_flags = new Uint8Array(16);
+  Shader.attrib_active_origin_flags = new Uint8Array(16);
 }
+// === static variables ===
+
+
 
 // === variables ===
 
@@ -36,6 +39,10 @@ function Shader(vertSrc, fragSrc, macros) {
 
 
 // === Static methods ===
+Shader.resetAttribActiveFlags() {
+
+}
+
 
 Shader.expandMacros = function (macros) {
 
@@ -331,16 +338,135 @@ Shader.prototype.drawBuffers = function(vertexBuffers,
   range_start,
   range_length) {
   this.gl.useProgram(this.program);
-  
+  Shader.attrib_active_flags.set(Shader.attrib_active_origin_flags);
+
+  var length = 0;
+  for (var name in vertexBuffers) {
+    // it could be position, normal, color
+    var buffer = vertexBuffers[name];
+    // this.attributes contains information about locations of
+    // position, normal, color in memory connected to gpu
+    var location = this.attributes[name];
+    if (location == null || !buffer.buffer) {
+      continue;
+    }
+    Shader.attrib_active_flags[location] = 1;
+
+    this.gl.bindBuffer(gl.ARRAY_BUFFER, buffer.buffer);
+    this.gl.enableVertexAttribArray(location);
+    this.gl.vertexAttribPointer(location,
+      buffer.buffer.spacing,
+      buffer.buffer.gl_type,
+      false,
+      0,
+      0);
+    // actually length is all the same in all buffers like position, tangent, normal...
+    length = buffer.buffer.length / buffer.buffer.spacing;
+  }
+
+  var offset = 0;
+  if (range_start > 0) {
+    offset = range_start;
+  }
+
+  if (indexBuffer) {
+    length = indexBuffer.buffer.length - offset;
+  }
+
+  if (range_length > 0) {
+    length = range_length;
+  }
+
+  var bytes_per_element = 1;
+  if (indexBuffer && indexBuffer.data) {
+    bytes_per_element = indexBuffer.data.constructor.BYTES_PER_ELEMENT;
+  }
+  offset *= bytes_per_element;
+
+  for (var name in this.attributes) {
+    var location = this.attributes[attribute];
+    if (!Shader.attrib_active_flags[location]) {
+      this.gl.disableVertexAttribArray(this.attributes[name]);
+    }
+  }
+
+  if (length) {
+    if (indexBuffer) {
+      this.gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer.buffer);
+      this.gl.drawElements(mode, length, indexBuffer.buffer.gl_type, offset);
+    } else {
+      this.gl.drawArrays(mode, offset, length);
+    }
+  }
+  return this;
 }
 
 Shader.prototype.drawInstanced = function (mesh, 
   primitive,
-  indices,
+  indice,
   instanced_uniforms,
   range_start,
   range_length,
   num_instances) {
+  if (range_length === 0) {
+    return;
+  }
+  if (this.gl.webgl_version == 1 && this.gl.extensions.ANGLE_instanced_arrays) {
+    throw("instancing not supported");
+  }
+
+  this.gl.useProgram(this.program);
+
+  var length = 0;
+  Shader.attrib_active_flags.set(Shader.attrib_active_origin_flags);
+  for (var name in mesh.vertexBuffers) {
+    var buffer = mesh.vertexBuffers[name];
+    var location = this.attributes[name];
+    if (location == null || !buffer.buffer) {
+      continue;
+    }
+    Shader.attrib_active_flags[location] = 1;
+    this.gl.bindBuffer(gl.ARRAY_BUFFER, buffer.buffer);
+    this.gl.enableVertexAttribArray(location);
+    this.gl.vertexAttribPointer(location,
+      buffer.buffer.spacing,
+      buffer.buffer.gl_type,
+      false,
+      0,
+      0);
+    length = buffer.buffer.length / buffer.buffer.spacing;
+  }
+
+  var indexBuffer = null;
+  if (indice) {
+    if (indice.constructor === String) {
+      indexBuffer = mesh.getIndexBuffer(indice);
+    } else if (indice.constructor === GL.Buffer) {
+      indexBuffer = indice;
+    }
+  }
+
+  var offset = 0;
+  if (range_start > 0) {
+    offset = range_start;
+  }
+
+  if (indexBuffer) {
+    length = indexBuffer.buffer.length - offset;
+  }
+
+  if (range_length > 0) {
+    length = range_length;
+  }
+
+  var bytes_per_element = 1;
+  if (indexBuffer && indexBuffer.data) {
+    bytes_per_element = indexBuffer.data.constructor.BYTES_PER_ELEMENT;
+  }
+  offset *= bytes_per_element;
+
+  for (var )
+
 
 }
 
