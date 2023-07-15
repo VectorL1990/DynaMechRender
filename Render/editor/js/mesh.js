@@ -6,8 +6,8 @@ global.Mesh = GL.Mesh = function Mesh(vertexbuffers, indexbuffers, options, gl) 
 
   this._context_id = gl.context_id;
 
-  this.internalVertexBuffers = {};
-  this.internalIndexBuffers = {};
+  this.vertexBuffers = {};
+  this.indexBuffers = {};
 
   this.info = {
     groups: []
@@ -18,25 +18,41 @@ global.Mesh = GL.Mesh = function Mesh(vertexbuffers, indexbuffers, options, gl) 
   }
 }
 
+// === Mesh static variables ===
 Mesh.default_datatype = Float32Array;
 
-Mesh.common_buffers = {
+Mesh.common_buffers_type_map = {
   "vertices": {spacing:3, attribute: "a_vertex"},
   "vertices2D": {spacing:2, attribute: "a_vertex2D"},
   "normals": {spacing:3, attribute: "a_normal"},
+  "coords": { spacing:2, attribute: "a_coord"},
+	"coords1": { spacing:2, attribute: "a_coord1"},
+	"coords2": { spacing:2, attribute: "a_coord2"},
+	"colors": { spacing:4, attribute: "a_color"}, 
+	"tangents": { spacing:3, attribute: "a_tangent"},
+	"bone_indices": { spacing:4, attribute: "a_bone_indices", type: Uint8Array },
+	"weights": { spacing:4, attribute: "a_weights"},
+	"extra": { spacing:1, attribute: "a_extra"},
+	"extra2": { spacing:2, attribute: "a_extra2"},
+	"extra3": { spacing:3, attribute: "a_extra3"},
+	"extra4": { spacing:4, attribute: "a_extra4"}
 };
 
-Mesh.prototype.addBuffer = function (name, buffer) {
-  if (buffer.target == gl.ARRAY_BUFFER) {
-    this.vertexBuffers[name] = buffer;
+// === Mesh member methods ===
+
+Mesh.prototype.addBuffer = function (name, dynamech_buffer) {
+  // target could be ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER
+  if (dynamech_buffer.target == gl.ARRAY_BUFFER) {
+    this.vertexBuffers[name] = dynamech_buffer;
   } else {
-    this.indexBuffers[name] = buffer;
+    this.indexBuffers[name] = dynamech_buffer;
   }
 
-  if (!buffer.attribute) {
-    var info = Mesh.common_buffers[name];
+  // attribute could be "a_vertex", "a_normal", "a_coord" and so on
+  if (!dynamech_buffer.attribute) {
+    var info = Mesh.common_buffers_type_map[name];
     if (info) {
-      buffer.attribute = info.attribute;
+      dynamech_buffer.attribute = info.attribute;
     }
   }
 }
@@ -44,31 +60,50 @@ Mesh.prototype.addBuffer = function (name, buffer) {
 
 
 Mesh.prototype.addBuffers = function (vertexBufCollection, indexBufCollection, stream_type) {
+  var vertices_num = 0;
+
+  if (this.vertexBuffers["vertices"]) {
+    vertices_num = vertexBufCollection["vertices"].type_array_data.length / 3;
+  }
+
   for (var key in vertexBufCollection) {
-    var buffer = vertexBufCollection[key];
-    if (!buffer) {
+    var dynamech_buffer = vertexBufCollection[key];
+    if (!dynamech_buffer) {
       continue;
     }
-    var data = buffer[key];
 
-    var stream_info = Mesh.common_buffers[key];
+    if (key == "vertices") {
+      // which means this dynamech_buffer stores vertices
+      vertices_num = dynamech_buffer.type_array_data.length / 3;
+    }
+    var spacing = dynamech_buffer.type_array_data.length / vertices_num;
 
-    if (data.constructor === Array) {
-      var datatype = Mesh.default_datatype;
-      if (stream_info.type) {
-        datatype = stream_info.type;
-      }
-      data = new datatype(data);
+    var attribute_name = "a_" + key;
+
+    if (this.vertexBuffers[key]) {
+      this.updateVertexBuffer(key, 
+        attribute_name, 
+        spacing, 
+        dynamech_buffer.type_array_data, 
+        stream_type);
+    } else {
+      this.createVertexBuffer(key,
+        attribute_name,
+        spacing,
+        dynamech_buffer.type_array_data,
+        stream_type);
     }
 
-    var spacing = stream_info[key].spacing;
-    
-    var attribute = "a_" + key;
 
-    if (this.internalIndexBuffers[key]) {
-      this.updateVertexBuffer(key, attribute, spacing, data, stream_type);
-    } else {
-      this.createVertexBuffer(key, attribute, spacing, data, stream_type);
+    if (indexBufCollection) {
+      for (key in indexBufCollection) {
+        var dynamech_buffer = indexBufCollection[key];
+        if (!dynamech_buffer) {
+          continue;
+        }
+
+        this.createIndexBuffer(key, dynamech_buffer.type_array_data);
+      }
     }
   }
 }
@@ -78,7 +113,7 @@ Mesh.prototype.createVertexBuffer = function (name,
   buffer_spacing,
   buffer_data,
   stream_type) {
-  var buffer_info = Mesh.common_buffers[name];
+  var buffer_info = Mesh.common_buffers_type_map[name];
 
   if (!attribute) {
     throw("attribute name can not be empty");
@@ -272,6 +307,8 @@ Mesh.prototype.parse = function (data, format, options) {
 Mesh.prototype.encode = function (format, options) {
 
 }
+
+// === Mesh static methods ===
 
 Mesh.load = function (buffers,
   options,
