@@ -17,9 +17,9 @@ GL.Buffer = function Buffer(target, data, spacing, stream_type, gl) {
 
   // data is a js array(type), which contains an element "buffer"
   // differed from "buffer" stored in gpu
-  this.type_array_data = data;
+  this.typed_array_data = data;
   this.spacing = spacing || 3;
-  if (this.type_array_data && this.gl) {
+  if (this.typed_array_data && this.gl) {
     this.upload(stream_type);
   }
 }
@@ -40,16 +40,16 @@ Buffer.prototype.upload = function (stream_type) {
   if (!gl) {
     throw ("gl is null, buffer upload failed");
   }
-  if (!this.type_array_data) {
+  if (!this.typed_array_data) {
     throw ("upload data is empty, upload failed");
   }
-  if (!this.type_array_data.buffer) {
+  if (!this.typed_array_data.buffer) {
     throw ("which means data is not array type, upload failed");
   }
   this.gl_buffer = gl.createBuffer();
-  this.gl_buffer.lenth = this.type_array_data.length;
+  this.gl_buffer.lenth = this.typed_array_data.length;
   this.gl_buffer.spacing = this.spacing;
-  switch (this.type_array_data.constructor) {
+  switch (this.typed_array_data.constructor) {
     case Int8Array:
       this.gl_buffer.gl_type = gl.BYTE;
       break;
@@ -80,11 +80,11 @@ Buffer.prototype.upload = function (stream_type) {
     (this.gl_buffer.gl_type == gl.INT || this.gl_buffer.gl_type == gl.UNSIGNED_INT)) {
     console.log("webgl doesn't support int32 as vertex buffer, convert to float")
     this.gl_buffer.gl_type = gl.FLOAT;
-    this.type_array_data = new Float32Array(this.type_array_data);
+    this.typed_array_data = new Float32Array(this.typed_array_data);
   }
 
   gl.bindBuffer(this.target, this.gl_buffer);
-  gl.bufferData(this.target, this.type_array_data, stream_type);
+  gl.bufferData(this.target, this.typed_array_data, stream_type);
 }
 
 Buffer.prototype.setData = function (in_data, offset) {
@@ -92,34 +92,34 @@ Buffer.prototype.setData = function (in_data, offset) {
     throw("in data must be typed array");
   }
   offset = offset || 0;
-  if (!this.type_array_data) {
-    this.type_array_data = in_data;
+  if (!this.typed_array_data) {
+    this.typed_array_data = in_data;
     this.upload();
     return;
-  } else if (this.type_array_data.length < in_data.length) {
+  } else if (this.typed_array_data.length < in_data.length) {
     throw("buffer is not long enough");
   }
 
-  if (this.type_array_data.length == in_data.length) {
-    this.type_array_data.set(in_data);
+  if (this.typed_array_data.length == in_data.length) {
+    this.typed_array_data.set(in_data);
     this.upload();
     return;
   }
 
   var new_data_array = new Uint8Array(in_data.buffer, in_data.buffer.byteOffset, in_data.buffer.byteLength);
-  var origin_data_array = new Uint8Array(this.type_array_data.buffer);
+  var origin_data_array = new Uint8Array(this.typed_array_data.buffer);
   origin_data_array.set(new_data_array, offset);
   this.uploadRange(offset, new_data_array.length);
 }
 
 Buffer.prototype.uploadRange = function (start, size) {
-  if (!this.type_array_data) {
-    throw("type_array_data is empty");
+  if (!this.typed_array_data) {
+    throw("typed_array_data is empty");
   }
-  if (!this.type_array_data.buffer) {
+  if (!this.typed_array_data.buffer) {
     throw("buffer stored in type array is empty");
   }
-  var partial_data = new Uint8Array(this.type_array_data.buffer, start, size);
+  var partial_data = new Uint8Array(this.typed_array_data.buffer, start, size);
   this.gl.bindBuffer(this.target, this.gl_buffer);
   this.gl.bufferSubData(this.target, start, partial_data);
 }

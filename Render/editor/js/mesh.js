@@ -1,4 +1,4 @@
-global.Mesh = GL.Mesh = function Mesh(vertexbuffers, indexbuffers, options, gl) {
+global.Mesh = GL.Mesh = function Mesh(in_vertexBuffers, in_indexBuffers, options, gl) {
   if (gl !== null) {
     gl = global.gl;
     this.gl = gl;
@@ -13,7 +13,7 @@ global.Mesh = GL.Mesh = function Mesh(vertexbuffers, indexbuffers, options, gl) 
     groups: []
   };
 
-  if (vertexbuffers || indexbuffers) {
+  if (in_vertexBuffers || in_indexBuffers) {
 
   }
 }
@@ -63,7 +63,7 @@ Mesh.prototype.addBuffers = function (vertexBufCollection, indexBufCollection, s
   var vertices_num = 0;
 
   if (this.vertexBuffers["vertices"]) {
-    vertices_num = vertexBufCollection["vertices"].type_array_data.length / 3;
+    vertices_num = vertexBufCollection["vertices"].typed_array_data.length / 3;
   }
 
   for (var key in vertexBufCollection) {
@@ -74,9 +74,9 @@ Mesh.prototype.addBuffers = function (vertexBufCollection, indexBufCollection, s
 
     if (key == "vertices") {
       // which means this dynamech_buffer stores vertices
-      vertices_num = dynamech_buffer.type_array_data.length / 3;
+      vertices_num = dynamech_buffer.typed_array_data.length / 3;
     }
-    var spacing = dynamech_buffer.type_array_data.length / vertices_num;
+    var spacing = dynamech_buffer.typed_array_data.length / vertices_num;
 
     var attribute_name = "a_" + key;
 
@@ -84,13 +84,13 @@ Mesh.prototype.addBuffers = function (vertexBufCollection, indexBufCollection, s
       this.updateVertexBuffer(key, 
         attribute_name, 
         spacing, 
-        dynamech_buffer.type_array_data, 
+        dynamech_buffer.typed_array_data, 
         stream_type);
     } else {
       this.createVertexBuffer(key,
         attribute_name,
         spacing,
-        dynamech_buffer.type_array_data,
+        dynamech_buffer.typed_array_data,
         stream_type);
     }
 
@@ -102,16 +102,16 @@ Mesh.prototype.addBuffers = function (vertexBufCollection, indexBufCollection, s
           continue;
         }
 
-        this.createIndexBuffer(key, dynamech_buffer.type_array_data);
+        this.createIndexBuffer(key, dynamech_buffer.typed_array_data);
       }
     }
   }
 }
 
 Mesh.prototype.createVertexBuffer = function (name,
-  attribute,
+  attribute, // which could be vertices, normals, coords, tangents and so on
   buffer_spacing,
-  buffer_data,
+  typed_array_data,
   stream_type) {
   var buffer_info = Mesh.common_buffers_type_map[name];
 
@@ -126,130 +126,204 @@ Mesh.prototype.createVertexBuffer = function (name,
     buffer_spacing = 3;
   }
 
-  if (!buffer_data) {
+  if (!typed_array_data) {
     var num = this.getNumVertices();
     if (!num) {
       throw("cannot create empty buffer without vertices");
     }
-    buffer_data = new (Mesh.default_datatype)(num*buffer_spacing);
+    typed_array_data = new (Mesh.default_datatype)(num*buffer_spacing);
   }
 
-  if (!buffer_data.buffer) {
+  if (!typed_array_data.buffer) {
     throw("Buffer data must be typed array");
   }
 
-  var buffer = 
-  this.internalVertexBuffers[name] = 
+  var gl_buffer = 
+  this.vertexBuffers[name] = 
   new Buffer(gl.ARRAY_BUFFER,
-    buffer_data,
+    typed_array_data,
     buffer_spacing,
     stream_type,
     this.gl);
 
-  buffer.name = name;
-  buffer.attribute = buffer_info;
+  gl_buffer.name = name;
+  gl_buffer.attribute = buffer_info;
+  return gl_buffer;
 }
 
 Mesh.prototype.updateVertexBuffer = function (name,
   attribute,
   buffer_spacing,
-  buffer_data,
+  typed_array_data,
   stream_type) {
-  var buffer = this.internalVertexBuffers[name];
-  if (!buffer) {
+  var dynamech_buffer = this.vertexBuffers[name];
+  if (!dynamech_buffer) {
     console.log("buffer not found: ", name);
     return;
   }
 
-  if (!buffer_data.length) {
+  if (!typed_array_data.length) {
     return;
   }
 
-  buffer.attribute
+  dynamech_buffer.attribute = attribute;
+  dynamech_buffer.spacing = buffer_spacing;
+  dynamech_buffer.typed_array_data = typed_array_data;
+  dynamech_buffer.upload(stream_type);
 }
 
-Mesh.prototype.removeVertexBuffer = function (name, free) {
-
+Mesh.prototype.removeVertexBuffer = function (attribute, free) {
+  var dynamech_buffer = this.vertexBuffers[attribute];
+  if (!dynamech_buffer) {
+    return;
+  }
+  if (free) {
+    dynamech_buffer.delete();
+  }
+  delete this.vertexBuffers[attribute];
 }
 
-Mesh.prototype.getVertexBuffer = function (name) {
-
+Mesh.prototype.getVertexBuffer = function (attribute) {
+  return this.vertexBuffers[attribute];
 }
 
 Mesh.prototype.createIndexBuffer = function (name,
-  buffer_data,
+  typed_array_data,
   stream_type) {
-  if (buffer_data.constructor === Array) {
-    var datatype = Uint16Array;
-    var vertices = this.internalVertexBuffers["vertices"];
-    if (vertices) {
-      var num_vertices = vertices.data.length / 3;
-      if (num_vertices > 256*256) {
-        datatype = Uint32Array;
-      }
-      buffer_data = new datatype(buffer_data);
-    }
-  }
 
-  var buffer = 
-  this.internalIndexBuffers[name] = 
+  var dynamech_buffer = 
+  this.indexBuffers[name] = 
   new Buffer(gl.ELEMENT_ARRAY_BUFFER,
-    buffer_data,
+    typed_array_data,
     0,
     stream_type,
     this.gl);
 
-  return buffer;
+  return dynamech_buffer;
 }
 
 Mesh.prototype.getIndexBuffer = function (name) {
-
+  return this.indexBuffers[name];
 }
 
 Mesh.prototype.removeIndexBuffer = function (name, free) {
-
+  var dynamech_buffer = this.indexBuffers[name];
+  if (!dynamech_buffer) {
+    return;
+  }
+  if (free) {
+    dynamech_buffer.delete();
+  }
+  delete this.indexBuffers[name];
 }
 
 Mesh.prototype.upload = function (buffer_type) {
-  for (var key in this.internalVertexBuffers) {
-    var buffer = this.internalVertexBuffers[key];
-    buffer.upload(buffer_type);
+  for (var key in this.vertexBuffers) {
+    var dynamech_buffer = this.vertexBuffers[key];
+    dynamech_buffer.upload(buffer_type);
   }
 
-  for (var key in this.internalIndexBuffers) {
-    var buffer = this.internalIndexBuffers[key];
-    buffer.upload();
+  for (var key in this.indexBuffers) {
+    var dynamech_buffer = this.indexBuffers[key];
+    dynamech_buffer.upload();
   }
 }
 
 Mesh.prototype.deleteBuffers = function () {
-  for (var key in thie.internalVertexBuffers) {
-    var buffer = this.internalVertexBuffers[key];
-    buffer.delete();
+  for (var key in this.vertexBuffers) {
+    var dynamech_buffer = this.vertexBuffers[key];
+    dynamech_buffer.delete();
   }
 
-  this.internalVertexBuffers = {};
+  this.vertexBuffers = {};
 
-  for (var key in this.internalIndexBuffers) {
-    var buffer = this.internalIndexBuffers[key];
-    buffer.delete();
+  for (var key in this.indexBuffers) {
+    var dynamech_buffer = this.indexBuffers[key];
+    dynamech_buffer.delete();
   }
 
-  this.internalIndexBuffers = {};
+  this.indexBuffers = {};
 }
 
 Mesh.prototype.bindBuffers = function (shader) {
-  for (var key in this.internalVertexBuffers) {
-    var buffer = this.internalVertexBuffers[key];
+  for (var key in this.vertexBuffers) {
+    var dynamech_buffer = this.vertexBuffers[key];
+    var attribute = dynamech_buffer.attribute;
+    var location = shader.attributes[attribute];
+    if (!dynamech_buffer.gl_buffer) {
+      continue;
+    }
+    this.gl.bindBuffer(gl.ARRAY_BUFFER, dynamech_buffer.gl_buffer);
+    this.gl.enableVertexAttribArray(location);
+    this.gl.vertexAttribPointer(location,
+      dynamech_buffer.gl_buffer.spacing,
+      dynamech_buffer.gl_buffer.gl_type,
+      false,
+      0,
+      0);
   }
 }
 
 Mesh.prototype.unbindBuffers = function (shader) {
-
+  for (var key in this.vertexBuffers) {
+    var dynamech_buffer = this.vertexBuffers[key];
+    var attribute = dynamech_buffer.attribute;
+    var location = shader.attributes[attribute];
+    if (!dynamech_buffer.gl_buffer) {
+      continue;
+    }
+    gl.disableVertexAttribArray(shader.attributes[attribute]);
+  }
 }
 
 Mesh.prototype.computeIndices = function () {
+  var new_vertices = [];
 
+  var indexer = {};
+  var origin_length = this.vertexBuffers["vertices"].typed_array_data.length / 3;
+  for (var i = 0; i < origin_length; ++i) {
+    // get specific vertice
+    var vertice = origin_length.subarray(i * 3, (i + 1) * 3);
+    // multiply 1000 to change it to integer
+    var key = (vertice[0] * 1000) | 0;
+
+    var j = 0;
+    var candidates = []
+    var candidate_length = 0;
+    if (key in indexer) {
+      candidates = indexer[key];
+      // which means indexer contains key
+      candidate_length = indexer[key].length;
+      for (; j < candidate_length; j++) {
+        var candidate_vertice = new_vertices[candidates[j]];
+        if (vec3.sqrDist(vertice, candidate_vertice) < 0.01) {
+          // which means we find a very closed vertice pair
+          indices.push(j);
+          break;
+        }
+      }
+    }
+
+    if (candidates && j != candidate_length) {
+      continue;
+    }
+
+    var index = j;
+    new_vertices.push[vertice];
+    if (key in indexer) {
+      indexer[key].push(vertex);
+    } else {
+      indexer[key] = [index];
+    }
+
+    if (origin_normals_data) {
+      new_normals.push(origin_normals_data.subarray(i * 3, (i + 1) * 3));
+    }
+    if (origin_coords_data) {
+      new_coords.push(origin_coords_data.subarray(i * 2, (i + 1) * 2));
+    }
+    indices.push(index);
+  }
 }
 
 Mesh.prototype.explodeIndices = function (buffer_name) {
