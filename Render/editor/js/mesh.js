@@ -276,14 +276,35 @@ Mesh.prototype.unbindBuffers = function (shader) {
   }
 }
 
+/**
+ * This function is called to merge very closed vertices
+ */
 Mesh.prototype.computeIndices = function () {
   var new_vertices = [];
+  var new_normals = [];
+  var new_coords = [];
+  var indices = [];
+
+  var origin_vertices_buffer = this.vertexBuffers["vertices"];
+  var origin_normals_buffer = this.vertexBuffers["normals"];
+  var origin_coords_buffer = this.vertexBuffers["coords"];
+
+  // setup origin normals data if indices data is modified
+  var origin_normals_data = null;
+  if (origin_normals_buffer) {
+    origin_normals_data = origin_normals_buffer.typed_array_data;
+  }
+  // setup origin coords data if indices data is modified
+  var origin_coords_data = null;
+  if (origin_coords_buffer) {
+    origin_coords_data = origin_coords_buffer.typed_array_data;
+  }
 
   var indexer = {};
-  var origin_length = this.vertexBuffers["vertices"].typed_array_data.length / 3;
+  var origin_length = origin_vertices_buffer.typed_array_data.length / 3;
   for (var i = 0; i < origin_length; ++i) {
     // get specific vertice
-    var vertice = origin_length.subarray(i * 3, (i + 1) * 3);
+    var vertice = origin_vertices_buffer.subarray(i * 3, (i + 1) * 3);
     // multiply 1000 to change it to integer
     var key = (vertice[0] * 1000) | 0;
 
@@ -324,6 +345,27 @@ Mesh.prototype.computeIndices = function () {
     }
     indices.push(index);
   }
+
+  this.vertexBuffers = {};
+
+  this.createVertexBuffer('vertices', 
+    Mesh.common_buffers_type_map["vertices"].attribute,
+    3,
+    linearizeArray(new_vertices));
+  if (origin_normals_data) {
+    this.createVertexBuffer('normals',
+      Mesh.common_buffers_type_map["normals"].attribute,
+      3,
+      linearizeArray(new_normals));
+  }
+  if (origin_coords_data) {
+    this.createVertexBuffer('coords',
+      Mesh.common_buffers_type_map["coords"].attribute,
+      2,
+      linearizeArray(new_coords));
+  }
+
+  this.createIndexBuffer("triangles", indices);
 }
 
 Mesh.prototype.explodeIndices = function (buffer_name) {
@@ -331,7 +373,79 @@ Mesh.prototype.explodeIndices = function (buffer_name) {
 }
 
 Mesh.prototype.computeNormals = function (stream_type) {
+  var vertices_buffer = this.vertexBuffers["vertices"];
+  if (!vertices_buffer) {
+    return console.log("can not compute normals of a mesh without vertices");
+  }
 
+  var vertices = this.vertexBuffers["vertices"].typed_array_data;
+  var vertices_nb = vertices.length / 3;
+
+  var normals = new Float32Array(vertices.length);
+
+  var triangles = null;
+  if (this.indexBuffers["triangles"]) {
+    triangles = this.indexBuffers["triangles"].typed_array_data;
+  }
+
+  var tmp_offset1 = vec3.create();
+  var tmp_offset2 = vec3.create();
+  var tmp_normal = vec3.create();
+
+  var indice1, indice2, indice3, vertice1, vertice2, vertice3, normal1, normal2, normal3;
+  var indice_length = triangles ? triangles.length : vertices.length;
+  for (var i = 0; i < indice_length; i += 3) {
+    if (triangles) {
+      indice1 = triangles[i];
+      indice2 = triangles[i + 1];
+      indice3 = triangles[i + 2];
+
+      vertice1 = vertices.subarray(indice1*3, indice1*3 + 3);
+      vertice2 = vertices.subarray(indice2*3, indice2*3 + 3);
+      vertice3 = vertices.subarray(indice3*3, indice3*3 + 3);
+
+      normal1 = normals.subarray(indice1*3, indice1*3 + 3);
+      normal2 = normals.subarray(indice2*3, indice2*3 + 3);
+      normal3 = normals.subarray(indice3*3, indice3*3 + 3);
+    } else {
+      vertice1 = vertices.subarray(i*3, i*3 + 3);
+      vertice2 = vertices.subarray(i*3, i*3 + 3);
+      vertice3 = vertices.subarray(i*3, i*3 + 3);
+
+      normal1 = normals.subarray(i*3, i*3 + 3);
+      normal2 = normals.subarray(i*3, i*3 + 3);
+      normal3 = normals.subarray(i*3, i*3 + 3);
+    }
+
+    vec3.sub(tmp_offset1, vertice2, vertice1);
+    vec3.sub(tmp_offset2, vertice3, vertice1);
+    vec3.cross(tmp_normal, tmp_offset1, tmp_offset2);
+    vec3.normalize(tmp_normal, tmp_normal);
+
+    vec3.add(normal1, normal1, tmp_normal);
+    vec3.add(normal2, normal2, tmp_normal);
+    vec3.add(normal3, normal3, tmp_normal);
+  }
+
+  if (triangles) {
+    // which means vertices are shared
+    for (var i = 0; i < normals.length; i += 3) {
+      var normal = normals.subarray(i, i+3);
+      vec3.normalize(normal, normal);
+    }
+  }
+
+  var normals_dynamech_buffer = this.vertexBuffers["normals"];
+  if (normals_dynamech_buffer) {
+    normals_dynamech_buffer.typed_array_data = normals;
+    normals_dynamech_buffer.upload(stream_type);
+  } else {
+    return this.createVertexBuffer("normals",
+      Mesh.common_buffers_type_map["normals"].attribute,
+      3,
+      normals);
+  }
+  return normals_dynamech_buffer;
 }
 
 Mesh.prototype.computeTangents = function () {
