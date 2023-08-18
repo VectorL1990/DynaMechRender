@@ -449,7 +449,98 @@ Mesh.prototype.computeNormals = function (stream_type) {
 }
 
 Mesh.prototype.computeTangents = function () {
+  var vertices_dynamech_buffer = this.vertexBuffers["vertices"];
+  if (!vertices_dynamech_buffer) {
+    return console.log("can not compute tangents without vertices");
+  }
 
+  var normals_dynamech_buffer = this.vertexBuffers["normals"];
+  if (!normals_dynamech_buffer) {
+    return console.log("can not compute tangents without normals");
+  }
+
+  var uvs_dynamech_buffer = this.vertexBuffers["coords"];
+  if (!uvs_dynamech_buffer) {
+    return console.log("can not compute tangents without coords");
+  }
+
+  var indices_dynamech_buffer = this.indexBuffers["triangles"];
+  if (!indices_dynamech_buffer) {
+    return console.log("can not compute tangents without indices");
+  }
+
+  var vertices_typed_array_data = vertices_dynamech_buffer.typed_array_data;
+  var normals_typed_array_data = normals_dynamech_buffer.typed_array_data;
+  var uvs_typed_array_data = uvs_dynamech_buffer.typed_array_data;
+  var indices_typed_array_data = indices_dynamech_buffer.typed_array_data;
+
+  if (!vertices_typed_array_data ||
+    !normals_typed_array_data ||
+    !uvs_typed_array_data) {
+    return;
+  }
+
+  var vertices_nb = vertices_typed_array_data.length / 3;
+  var tangents_typed_array_data = new Float32Array(vertices_nb * 4);
+
+  var tan1 = new Float32Array(vertices_nb*3*2);
+  var tan2 = tan1.subarray(vertices_nb*3);
+
+  var u_direction = vec3.create();
+  var v_direction = vec3.create();
+
+
+  for (var i=0; i<indices_typed_array_data.length; i+=3) {
+    var indice1 = indices_typed_array_data[i];
+    var indice2 = indices_typed_array_data[i+1];
+    var indice3 = indices_typed_array_data[i+2];
+
+    var vertice1 = vertices_typed_array_data.subarray(indice1*3, indice1*3 + 3);
+    var vertice2 = vertices_typed_array_data.subarray(indice2*3, indice2*3 + 3);
+    var vertice3 = vertices_typed_array_data.subarray(indice3*3, indice3*3 + 3);
+
+    var uv1 = uvs_typed_array_data.subarray(indice1*2, indice1*2 + 2);
+    var uv2 = uvs_typed_array_data.subarray(indice2*2, indice2*2 + 2);
+    var uv3 = uvs_typed_array_data.subarray(indice3*2, indice3*2 + 2);
+
+    var offset_x1 = vertice2[0] - vertice1[0];
+    var offset_x2 = vertice3[0] - vertice1[0];
+    var offset_y1 = vertice2[1] - vertice1[1];
+    var offset_y2 = vertice3[1] - vertice1[1];
+    var offset_z1 = vertice2[2] - vertice1[2];
+    var offset_z2 = vertice3[2] - vertice1[2];
+
+    var u_offset1 = uv2[0] - uv1[0];
+    var u_offset2 = uv3[0] - uv1[0];
+    var v_offset1 = uv2[1] - uv1[1];
+    var v_offset2 = uv3[1] - uv1[1];
+
+    var determinant = uv_offset_u1 * uv_offset_v2 - uv_offset_u2 * uv_offset_v1;
+    var denominator = 0;
+    if (Math.abs(determinant) < 0.001) {
+      denominator = 0.0;
+    } else {
+      denominator = 1.0 / determinant;
+    }
+
+    var u_project_x = (u_offset1*offset_x2 - u_offset2*offset_x1)*denominator;
+    var u_project_y = (u_offset1*offset_y2 - u_offset2*offset_y1)*denominator;
+    var u_project_z = (u_offset1*offset_z2 - u_offset2*offset_z1)*denominator;
+
+    var v_project_x = (v_offset2*offset_x1 - v_offset1*offset_x2)*denominator;
+    var v_project_y = (v_offset2*offset_y1 - v_offset1*offset_y2)*denominator;
+    var v_project_z = (v_offset2*offset_z1 - v_offset1*offset_z2)*denominator;
+    vec3.copy(u_direction, [v_project_x, v_project_y, v_project_z]);
+    vec3.copy(v_direction, [u_project_x, u_project_y, u_project_z]);
+
+    vec3.add(tan1.subarray(indice1*3, indice1*3+3), tan1.subarray(indice1*3, indice1*3+3), u_direction);
+    vec3.add(tan1.subarray(indice2*3, indice2*3+3), tan1.subarray(indice2*3, indice2*3+3), u_direction);
+    vec3.add(tan1.subarray(indice3*3, indice3*3+3), tan1.subarray(indice3*3, indice3*3+3), u_direction);
+
+    vec3.add(tan2.subarray(indice1*3, indice1*3+3), tan2.subarray(indice1*3, indice1*3+3), v_direction);
+    vec3.add(tan2.subarray(indice2*3, indice2*3+3), tan2.subarray(indice2*3, indice2*3+3), v_direction);
+    vec3.add(tan2.subarray(indice3*3, indice3*3+3), tan2.subarray(indice3*3, indice3*3+3), v_direction);
+  }
 }
 
 Mesh.prototype.computeTextureCoordinates = function (stream_type) {
