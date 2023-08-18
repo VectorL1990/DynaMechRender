@@ -541,14 +541,28 @@ Mesh.prototype.computeTangents = function () {
     vec3.add(tan2.subarray(indice2*3, indice2*3+3), tan2.subarray(indice2*3, indice2*3+3), v_direction);
     vec3.add(tan2.subarray(indice3*3, indice3*3+3), tan2.subarray(indice3*3, indice3*3+3), v_direction);
   }
+
+  var temp = vec3.create();
+  var temp2 = vec3.create();
+  for (i = 0; i < vertices.length; i += 3) {
+    // Gram-Schmidt orthogonalize
+    var normal = normals.subarray(i, i + 3);
+    var tangent = tan1.subarray(i, i + 3);
+
+    vec3.subtract(temp, tangent, vec3.scale(temp, n, vec3.dot(normal, tangent)));
+    vec3.normalize(temp, temp);
+
+    var w = (vec3.dot(vec3.cross(temp2, normal, tangent), tan2.subarray(i, i + 3)) < 0.0) ? -1.0:1.0;
+    tangents.set([temp[0], temp[1], temp[2], w], (a/3)*4);
+  }
+
+  this.createVertexBuffer('tangents', Mesh.common_buffers["tangents"].attribute, 4, tangents);
 }
 
 Mesh.prototype.computeTextureCoordinates = function (stream_type) {
-
 }
 
 Mesh.computeBoundingBox = function (vertices, bb, mask) {
-
 }
 
 Mesh.prototype.getBoundingBox = function () {
@@ -565,6 +579,14 @@ Mesh.prototype.computeGroupsBoundingBoxes = function () {
 
 Mesh.prototype.setBoundingBox = function (center, half_size) {
 
+}
+
+Mesh.prototype.setBoundingBox = function(center, half_size) {
+
+}
+
+Mesh.prototype.freeData = function () {
+  
 }
 
 Mesh.prototytpe.configure = function (o, options) {
