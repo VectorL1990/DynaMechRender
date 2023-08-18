@@ -4,17 +4,22 @@
   
   var GL = global.GL = {};
 
+  /*
   global.requestAnimationFrame = global.requestAnimationFrame ||
                                  global.mozRequestAnimationFrame || 
                                  global.webkitRequestAnimationFrame || 
                                  function (callback) {
                                    setTimeout(callback, 1000 / 60);
-                                  };
+                                  };*/
   
   global.createCanvas = GL.createCanvas = function createCanvas(width, height) {
     var canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+    canvas.id = "drawCanvas";
+    var style = canvas.style;
+    //style.width = "100%";
+    //style.height = "100%";
+    canvas.width = 640;
+    canvas.height = 480;
     return canvas;
   }
 
@@ -24,12 +29,11 @@
     global.getTime = Date.now.bind( Date );
   GL.getTime = global.getTime;
 
-  GL.create = function (options)
-  {
+  GL.create = function (options) {
 
     var canvas = this.createCanvas(
-      options.width || 800,
-      options.height || 600
+      options.width || "100%",
+      options.height || "100%"
     );
 
     var gl = null;
@@ -64,38 +68,16 @@
 
     global.gl = gl;
     canvas.gl = gl;
+    GL.gl = gl;
 
-
-
-    gl.animate = function ()
-    {
-      var post = global.requestAnimationFrame;
-      var time = getTime();
-
-      function loop()
-      {
-        if (gl.destroyed)
-        {
-          return;
-        }
-
-        this._requestFrame_id = global.requestAnimationFrame(loop);
-
-        var now = getTime();
-        var dt = (time - now) * 0.001;
-        //this.onupdate(dt);
-        gl.ondraw();
-        time = now;
-      }
-
-      this._requestFrame_id = post(loop);
-    }
-
-    gl.destroy = function ()
-    {
+    gl.destroy = function () {
       this.canvas.parentNode.removeChild(this.canvas);
       global.gl = null;
     }
+
+    // declare variables here
+    gl.cur_fbo = null;
+    gl.rbo_pool = {};
 
     return gl;
   }

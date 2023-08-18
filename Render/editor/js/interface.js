@@ -4,28 +4,26 @@ var InterfaceModule = {
   init: function (options) {
     options = options || {};
 
-    var side_panel_width = 360;
-
-    var mainarea = new LiteGUI.Area({
-      id: "mainarea",
-      content_id: "workarea",
-      height: "calc(100% - 30px)",
-      autoresize: true,
-      inmediateResize: true,
-      minSplitSize: 200
-    });
-
-    this.mainarea = mainarea;
-    mainarea.split("horizontal", [null, side_panel_width], true);
-    console.log("liteGUI is: ");
-    console.log(LiteGUI);
-    if (options.liteGUI) {
-      _liteGUI = options.liteGUI;
-      _liteGUI.add(mainarea);
+    var root = document.createElement("div");
+		root.className = "drawareaclass";
+		if (options.id) {
+			root.id = options.id;
+    } else {
+      root.id = "drawarea";
     }
-    LiteGUI.add(mainarea);
+		if (options.className)
+		{
+			root.className += " " + options.className;
+		}
 
-    this.createTabs();
+		var width = options.width || "100%";
+		var height = options.height || "100%";
+
+		root.style.width = width;
+		root.style.height = height;
+    this.options = options;
+    
+    LiteGUI.add(root);
   },
 
   createTabs: function () {
