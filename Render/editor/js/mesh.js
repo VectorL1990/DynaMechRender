@@ -586,7 +586,14 @@ Mesh.prototype.setBoundingBox = function(center, half_size) {
 }
 
 Mesh.prototype.freeData = function () {
-  
+  for (var attribute in this.vertexBuffers) {
+    this.vertexBuffers[attribute].data = null;
+    delete this[this.vertexBuffers[attribute].name];
+  }
+  for (var name in this.indexBuffers) {
+    this.indexBuffers[name].data = null;
+    delete this[this.indexBuffers[name].name];
+  }
 }
 
 Mesh.prototytpe.configure = function (o, options) {
